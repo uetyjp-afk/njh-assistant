@@ -1,0 +1,4 @@
+[[redirects]]
+  from = "/order"
+  to = "/order/index.html"
+  status = 200
