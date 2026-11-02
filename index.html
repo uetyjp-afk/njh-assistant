@@ -828,9 +828,10 @@
         .ms-btns .ms-mail { background: var(--primary); }
         .ms-btns .ms-save { background: #2b6cb0; }
         .ms-btns .ms-cancel { background: #edf2f7; color: var(--text); }
-        .cf-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); }
+        .cf-btns { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 10px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); }
         .cf-btns button { padding: 14px 8px; font-size: 1rem; font-weight: 700; font-family: inherit; border-radius: 10px; border: none; cursor: pointer; }
         .cf-btns .cf-no { background: #edf2f7; color: var(--text); }
+        .cf-btns .cf-print { background: #edf2f7; color: var(--text); }
         .cf-btns .cf-yes { background: #2b6cb0; color: #fff; }
         .ha-go { display: block; margin: 0 0 12px; padding: 13px 14px; border-radius: 12px; text-decoration: none; color: #fff; background: linear-gradient(135deg, #0a8f48, #2b8a6e); font-weight: 700; line-height: 1.4; }
         .ha-go small { display: block; margin-top: 2px; font-size: 0.78rem; font-weight: 500; opacity: .95; }
@@ -1125,7 +1126,7 @@ img,canvas,table{max-width:100%}
         <p class="cf-sum" id="cfSum"></p>
         <div class="cf-imgs" id="cfImgs"></div>
         <button type="button" class="cf-manual" id="cfManual">共有メニューにLINE・メールが出ない場合はこちら</button>
-        <div class="cf-btns"><button type="button" class="cf-no" id="cfNo">戻る</button><button type="button" class="cf-yes" id="cfYes">この内容で送る</button></div>
+        <div class="cf-btns"><button type="button" class="cf-no" id="cfNo">戻る</button><button type="button" class="cf-print" id="cfPrint">印刷する</button><button type="button" class="cf-yes" id="cfYes">この内容で送る</button></div>
     </div>
 </div>
 <div id="msModal" class="cf-modal hidden" role="dialog" aria-modal="true" aria-label="送り方を選ぶ">
@@ -2048,8 +2049,9 @@ img,canvas,table{max-width:100%}
             cEl('cfImgs').innerHTML = items.map(it => `<figure><figcaption>${cEsc(it.cap)}</figcaption><img src="${it.src}" alt=""></figure>`).join('');
             const m = cEl('cfModal');
             m.classList.remove('hidden');
-            const done = v => { m.classList.add('hidden'); cEl('cfYes').onclick = cEl('cfNo').onclick = cEl('cfManual').onclick = null; res(v); };
+            const done = v => { m.classList.add('hidden'); cEl('cfYes').onclick = cEl('cfNo').onclick = cEl('cfManual').onclick = cEl('cfPrint').onclick = null; res(v); };
             cEl('cfManual').onclick = () => done('manual');
+            cEl('cfPrint').onclick = () => done('print');
             cEl('cfYes').onclick = () => done(true);
             cEl('cfNo').onclick = () => done(false);
         });
@@ -2535,6 +2537,13 @@ function cFname() {
             const okSend = await confirmSend('この内容で送りますか？',
                 (shop || '貴店名未入力') + '　／　' + pages.length + 'ページPDF（補聴器＋パーツ）', items);
             if (!okSend) return;
+            if (okSend === 'print') {
+                const box = cEl('printSheet');
+                box.innerHTML = items.map(it => `<img src="${it.src}">`).join('');
+                try { window.print(); } catch (e) {}
+                setTimeout(() => { box.innerHTML = ''; }, 1000);
+                return;
+            }
             const sub = '【ご注文】補聴器＋パーツ ' + shop;
             const body = shop + 'です。補聴器注文書とパーツ注文書を' + pages.length + 'ページPDFで送ります。';
             if (okSend === 'manual') {
