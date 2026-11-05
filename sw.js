@@ -1,5 +1,5 @@
 // Service Worker for NJHチャットボット注文書
-const CACHE_NAME = 'njh-assist-v45';
+const CACHE_NAME = 'njh-assist-v46';
 const ASSETS = [
   './',
   './index.html',
