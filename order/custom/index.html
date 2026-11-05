@@ -114,6 +114,7 @@ try{
   if(q.get("kana"))V.kana=q.get("kana");
   if(q.get("sex")==="男")V.sex=0; if(q.get("sex")==="女")V.sex=1;
   if(q.get("age"))V.age=q.get("age");
+  if(q.get("bY"))V.bY=q.get("bY");if(q.get("bM"))V.bM=q.get("bM");if(q.get("bD"))V.bD=q.get("bD");
   if(q.get("au")){try{const au=JSON.parse(q.get("au"));["R","L"].forEach(e=>{const ac=(au.ac||{})[e]||{},bc=(au.bc||{})[e]||{};Object.keys(ac).forEach(f=>{if(ac[f]!==''&&ac[f]!=null)V["a"+e+f]=ac[f]});Object.keys(bc).forEach(f=>{if(bc[f]!==''&&bc[f]!=null)V["b"+e+f]=bc[f]})});if(au.date&&!V.mdate){const d=String(au.date).split("-");if(d.length===3)V.mdate=(+d[1])+"/"+(+d[2])}}catch(e){}}
   if(q.get("tel")){const t=q.get("tel").replace(/[^0-9]/g,"");const sp=splitTel(t);if(sp){V.tel1=sp[0];V.tel2=sp[1];V.tel3=sp[2]}}
   if(q.get("form")==="bel"){/* select bel later */}
@@ -436,7 +437,7 @@ function draw(){
       fit(nn(V.tel2),24,9,"l",f.d[1][0],f.d[1][1]);
       fit(nn(V.tel3),24,9,"l",f.d[2][0],f.d[2][1]);
     }
-    if(t==="tx"&&nn(V[f.k])&&(!f.cond||V[f.cond[0]]===f.cond[1]))fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y);
+    if(t==="tx"&&nn(V[f.k])&&(!f.cond||V[f.cond[0]]===f.cond[1])){if(f.k==="wish"){const wm=String(V.wish).match(/(?:\d{4}\D*)?(\d{1,2})\D+(\d{1,2})/);if(wm){fit(wm[1],24,9.5,"r",519,f.y);fit(wm[2],24,9.5,"l",533,f.y)}else fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y)}else fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y)}
     if(t==="nm"&&V.nm){chk(f.p[0],f.p[1],10);if(nn(V.nmText))fit(nn(V.nmText).slice(0,15),f.w,7.5,"l",f.x+2,f.y-1)}
     if(t==="d"){["Y","M","D"].forEach((s,i)=>{const v=nn(V[f.k+s]);if(v)fit(v,30,f.fs,"r",f.xs[i],f.y)})}
     if(t==="bd"){
