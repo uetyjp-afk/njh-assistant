@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>修理依頼書・紛失保証注文書 | NJH</title>
+<script src="./pdf-lib.min.js"></script>
+<style>
+:root{--blue:#1d4e89;--line:#d7dee8;--bg:#f4f6f9}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:#1c2733}
+header{background:var(--blue);color:#fff;padding:12px 14px;position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0}
+header p{margin:3px 0 0;font-size:12px;opacity:.85}
+main{max-width:860px;margin:0 auto;padding:12px}
+nav{display:flex;gap:8px;margin-bottom:12px}
+nav button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:15px;font-weight:700;cursor:pointer}
+nav button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+.card h2{font-size:14px;margin:0 0 8px;color:var(--blue)}
+label{display:block;font-size:12px;color:#55606c;margin:8px 0 3px}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:9px;border:1px solid:#b9c4d1;border-radius:8px;font-size:15px;background:#fff}
+textarea{resize:vertical}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:7px 11px;border-radius:999px;border:1px solid #b9c4d1;background:#fff;font-size:13.5px;cursor:pointer}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.note{font-size:12px;color:#66707c}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btns button{flex:1;min-width:140px;padding:13px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+.b-pdf{background:#1d4e89;color:#fff}
+.b-print{background:#e8edf4;color:#1c2733;border:1px solid var(--line)}
+canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+#linkInfo{font-size:13px;color:#1d4e89;font-weight:700;margin-bottom:8px}
+a.back{color:#fff;font-size:12px;opacity:.9;text-decoration:none}
+.mini{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* レスポンシブ追加 */
+@media(min-width:1024px){main{max-width:980px}}
+@media(max-width:768px){input[type=text],input[type=date],input[type=number],select,textarea{font-size:16px}}
+@media(max-width:560px){.g3{grid-template-columns:1fr 1fr}.btns button{min-width:46%}}
+@media(max-width:400px){.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>修理・紛失の依頼書</h1>
+<p>補聴器を選ぶと 店名・氏名・シリアル・購入日 が自動で入ります。<a class="back" href="../../index.html" style="background:#ff7a00;color:#fff;font-weight:700;padding:7px 14px;border-radius:999px;text-decoration:none;display:inline-block;font-size:14px;white-space:nowrap">🏠 ホームに戻る</a></p>
+</header>
+<main>
+<nav>
+<button type="button" data-form="repair">🔧 修理依頼書</button>
+<button type="button" data-form="loss">📄 紛失保証注文書</button>
+</nav>
+<div id="linkInfo"></div>
+<div id="secs"></div>
+<div class="card">
+<h2>プレビュー</h2>
+<canvas id="cv" width="1654" height="2339"></canvas>
+<div class="btns">
+<button type="button" class="b-pdf" id="dl">PDFで保存</button>
+<button type="button" class="b-print" id="pr">印刷</button><button type="button" id="clr" style="background:#eee">入力をクリア</button>
+</div>
+<p class="note" id="dlNote"></p>
+</div>
+</main>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const FORMS={
+ repair:{name:'修理依頼書',bg:'repair_bg2.png',bg1:'repair_bg1.png',W:1654,H:2339,pw:595.276,ph:841.89,file:'修理依頼書'},
+ loss:{name:'紛失保証注文書',bg:'loss_bg.png',W:1654,H:2338,pw:595.2,ph:841.68,file:'紛失保証注文書'}
+};
+const KINDS=[['hosho','保証修理'],['iri5','一律修理（5年以内）'],['iri6','一律修理（6年目以降）'],['charger','充電器修理'],['sogo','総合支援法'],['shell','シェル再作（3年目以降）'],['wire','ワイヤレス機器・RICモールド'],['mit6','見積修理（6年目以降）'],['yuryo','一律区分の有料事前見積を希望'],['sai','再修理（修理後3ヶ月以内）'],['wax','ワックスガード変更：ワックスフィルター'],['hf4','ワックスガード変更：HF4']];
+const KIND_CK={hosho:[95.6,159.9,15],iri5:[231.6,159.9,15],iri6:[362.2,159.9,15],charger:[95.6,240.9,15],sogo:[469.3,155.1,12],shell:[469,175.8,12],wire:[469,211.3,12],mit6:[469.3,249.5,12],yuryo:[263.4,257.9,12],sai:[64.7,298.4,15],wax:[324.4,323.1,11],hf4:[432.3,323.1,11]};
+const SYMS=[['tenken','点検',123,138,501.5],['naibu','内部点検',123,154,516.4],['kando','感度不良',123,154,531.4],['funyuu','不入音',123,146,546.4],['zatsuon','雑音',123,138,561.4],['danon','断音',123,138,576.4],['waion','歪音',123,138,591.4],['vol','ボリューム不良',170,221,501.4],['sw','スイッチ不良',170,214,516.4],['case','ケース破損',170,208,531.4],['hook','フック破損',170,205,546.4],['door','バッテリードア破損',170,235,561.4],['wireless','ワイヤレス機器接続不良',170,253,576.4],['denchi','電池入り込み',170,215,591.4],['dhayai','電池寿命早い',271,323,501.5],['jufuryou','充電不良（補聴器）',270,332,516.4],['juhayai','充電寿命早い',270,323,531.5],['juki','充電器不良',270,310,546.4],['pc','PC接続不可',271,311,561.5],['rakka','落下・水没',270,306,576.4],['shichuu','支柱破損',384,406,501.4],['bento','ベント埋め',375,411,516.4],['plate','プレートはがれ',390,426,531.2],['hibi','シェルにひび',375,418,546.2],['uv','シェルUVコート',375,426,561.4],['tegus','テグス取付',375,443,576.3],['ssaisaku','シェル再作',458,498,505.5],['kitsui','シェルがきつい・痛い',460,531,519.4],['yurui','シェルがゆるい',460,511,533.3],['shason','シェル破損',460,496,547.4],['touch','タッチマイクチューブ破損',460,546,561.3]];
+const ACCS=[['case','ケース',120,143,665.8],['earmold','イヤモールド（R・L）',228,306,665.8],['hookacc','フック（ノーマル・ダンパー）',367,467,665.8],['hosho','保証書',518,545,665.8],['battery','電池',120,136,679.8],['mold','モールド（R・L）',229,290,679.8],['slim','スリムチューブ（R・L）',367,451,679.8],['mesu','メス型',518,543,679.8],['charger2','充電器',120,145,693.7],['ac','ACアダプター・充電ケーブル',228,357,693.7],['mihon','見本補聴器',411,459,693.7],['sonota','その他',120,146,707.7]];
+const defCommon=()=>({shop:'',staff:'',tel:'',fax:'',cust:'',model:'',noR:'',noL:'',buy:''});
+const defRepair=()=>({dateR:today(),kinds:[],syms:[],days:'',hours:'',tegusType:'',tegusMm:'',hf4text:'',comment:'',shopConfirm:false,accs:[],caseNum:'',batNum:'',mihonText:'',sonotaText:'',telConsult:false,memo:'',arrival:''});
+const defLoss=()=>({date:today(),serial:'',amount:'',todokePlace:'',todokeTel:'',todokeDate:'',todokeNo:'',colorL:'',colorR:'',sizeL:'',sizeR:'',domeL:'',domeR:''});
+let V; try{V=JSON.parse(localStorage.getItem('njh_req_v1')||'null')}catch(e){V=null}
+if(!V||!V.repair||!V.loss||!V.common)V={form:'repair',common:defCommon(),repair:defRepair(),loss:defLoss(),haSel:-1,ear:'B'};
+const save=()=>{try{localStorage.setItem('njh_req_v1',JSON.stringify(V))}catch(e){}};
+const P=new URLSearchParams(location.search);
+let CID=P.get('cid')||'';
+let RID=P.get('rid')||'';
+if(!CID&&location.hash){const m=location.hash.match(/cid=(\d+)/);if(m)CID=m[1]}
+const fparam=P.get('form')||((location.hash.match(/form-(repair|loss)/)||[])[1])||'';
+if(fparam&&FORMS[fparam])V.form=fparam;
+for(const k of['shop','staff','tel','fax','cust'])if(P.get(k))V.common[k]=P.get(k);
+let CUST=null,HAS=[];
+try{const D=JSON.parse(localStorage.getItem('njhc')||'null');
+ if(D){if(!V.common.shop&&D.shop){V.common.shop=D.shop.name||'';V.common.staff=D.shop.staff||'';V.common.tel=D.shop.tel||'';V.common.fax=D.shop.fax||''}
+  if(CID){CUST=(D.cs||[]).find(x=>String(x.id)===String(CID))||null;
+   if(CUST){HAS=(CUST.ha||[]).filter(h=>h&&(h.buy||(h.R&&h.R.model)||(h.L&&h.L.model)));if(!V.common.cust)V.common.cust=CUST.name||''}}}}catch(e){}
+if(V.haSel<0||V.haSel>=HAS.length)V.haSel=HAS.length-1;
+function addY2(d,y){if(!d||!y)return'';const t=new Date(d+'T00:00:00');if(isNaN(t))return'';t.setFullYear(t.getFullYear()+ +y);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')}
+function flatP2(h){const lim=addY2(h.buy,5);return lim&&today()<=lim?'26,000円（購入から5年以内）':'52,000円（購入から5年を経過）'}
+function deriveSerial(){const c=V.common;if(V.ear==='R')return c.noR||'';if(V.ear==='L')return c.noL||'';return[c.noR&&'右 '+c.noR,c.noL&&'左 '+c.noL].filter(Boolean).join('　')}
+function applyHa(){const rec=HAS[V.haSel];if(!rec)return;const c=V.common;c.buy=rec.buy||'';const rm=rec.R&&rec.R.model||'',lm=rec.L&&rec.L.model||'';
+ c.model=V.ear==='R'&&rm?rm:V.ear==='L'&&lm?lm:(rm&&lm&&rm!==lm?rm+' / '+lm:rm||lm);
+ c.noR=rec.R&&rec.R.no||'';c.noL=rec.L&&rec.L.no||'';V.loss.serial=deriveSerial();if(rec.lgAmt)V.loss.amount=rec.lgAmt}
+function getP(p){return p.split('.').reduce((o,k)=>o[k],V)}
+function setP(p,v){const ks=p.split('.');const o=ks.slice(0,-1).reduce((o,k)=>o[k],V);o[ks[ks.length-1]]=v}
+function chipsHtml(path,items,single){const cur=getP(path);return `<div class="chips">${items.map(([id,label])=>{const on=single?(cur===id||(cur===true&&id==='1')):(cur||[]).includes(id);return `<button type="button" class="chip${on?' on':''}" data-chip="${path}|${id}|${single?1:0}">${esc(label)}</button>`}).join('')}</div>`}
+function inp(path,label,type='text',ph=''){return `<div><label>${label}</label><input type="${type}" data-b="${path}" value="${esc(getP(path))}" placeholder="${ph}"></div>`}
+function haSection(){if(!HAS.length)return `<div class="card"><h2>補聴器の選択</h2><p class="note">補聴器の情報は下の欄に入力してください。</p></div>`;
+ const rec=HAS[V.haSel];
+ return `<div class="card"><h2>どの補聴器ですか？（選ぶと自動入力）</h2>
+ <label>購入記録</label><div class="chips">${HAS.map((h,i)=>`<button type="button" class="chip${i===V.haSel?' on':''}" data-ha="${i}">${esc(h.buy||'購入日不明')}：${esc((h.R&&h.R.model)||(h.L&&h.L.model)||'')}</button>`).join('')}</div>
+ <label>対象</label><div class="chips">${[['R','右耳'],['L','左耳'],['B','両耳']].map(([id,t])=>`<button type="button" class="chip${V.ear===id?' on':''}" data-ear="${id}">${t}</button>`).join('')}</div>
+ <p class="note">選択中の補聴器：${esc(rec?(rec.buy||'')+'　右：'+((rec.R&&rec.R.model)||'')+'（'+((rec.R&&rec.R.no)||'')+'）　左：'+((rec.L&&rec.L.model)||'')+'（'+((rec.L&&rec.L.no)||'')+'）':'')}</p>${rec&&rec.buy?'<p class="note">一律修理の目安：'+flatP2(rec)+'</p>':''}</div>`}
+function commonSection(){const c='common';return `<div class="card"><h2>お店・お客様情報（自動入力）</h2><div class="g2">
+ ${inp(c+'.shop','貴店名')}${inp(c+'.staff','ご担当者')}
+ ${inp(c+'.tel','電話番号')}${inp(c+'.fax','FAX番号')}
+ ${inp(c+'.cust','お客様名')}${inp(c+'.buy','購入日（販売日）','date')}
+ </div><div class="g2">${inp(c+'.model','器種名')}</div>
+ <div class="g2">${inp(c+'.noR','製造No（右）')}${inp(c+'.noL','製造No（左）')}</div></div>`}
+function render(){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.form===V.form));
+ $('#linkInfo').textContent=CUST?`顧客管理と連携中：${CUST.name||''} 様（カルテNo.${CUST.no||''}）`:'';
+ const v=V[V.form];let h=haSection()+commonSection();
+ if(V.form==='repair'){h+=`<div class="card"><h2>① 修理の種類</h2>${chipsHtml('repair.kinds',KINDS)}
+  ${v.kinds.includes('hf4')?inp('repair.hf4text','HF4の内容（　）内') :''}
+  ${inp('repair.dateR','貴店受付日','date')}</div>
+  <div class="card"><h2>③ 故障状況（当てはまるものを選択）</h2>${chipsHtml('repair.syms',SYMS.map(s=>[s[0],s[1]]))}
+  <div class="g3">${inp('repair.days','電池寿命早い（日数）','number')}${inp('repair.hours','充電寿命早い（時間）','number')}${inp('repair.tegusMm','テグス（mm）','number')}</div>
+  <label>テグス取付の種類</label>${chipsHtml('repair.tegusType',[['1','1本'],['ring','輪']],true)}</div>
+  <div class="card"><h2>コメント・付属品</h2>
+  <label>コメント</label><textarea rows="2" data-b="repair.comment">${esc(v.comment)}</textarea>
+  <div style="margin-top:6px">${chipsHtml('repair.shopConfirm',[['1','お店で上記の症状確認']],true)}</div>
+  <label style="margin-top:10px">付属品（同封するもの）</label>${chipsHtml('repair.accs',ACCS.map(a=>[a[0],a[1]]))}
+  <div class="g2">${inp('repair.caseNum','ケース（個数）')}${inp('repair.batNum','電池（個数）')}</div>
+  <div class="g2">${inp('repair.mihonText','見本補聴器（内容）')}${inp('repair.sonotaText','その他（内容）')}</div></div>
+  <div class="card"><h2>備考・到着希望日</h2>
+  ${chipsHtml('repair.telConsult',[['1','電話相談希望']],true)}
+  <label>備考</label><textarea rows="2" data-b="repair.memo">${esc(v.memo)}</textarea>
+  ${inp('repair.arrival','ご到着希望日（空欄＝標準の5営業日発送）','date')}</div>`}
+ else{h+=`<div class="card"><h2>基本情報</h2><div class="g2">${inp('loss.date','ご注文日','date')}${inp('loss.serial','紛失補聴器のシリアルNO.')}</div>
+  <label>今回のご注文品（金額）</label>${chipsHtml('loss.amount',[['all','全額'],['half','半額']],true)}
+  <p class="note">右のみ・左のみ・両耳は上の「対象」で選んでください。</p></div>
+  <div class="card"><h2>紛失届</h2><div class="g2">
+  ${inp('loss.todokePlace','届出先（警察署・交番名）')}${inp('loss.todokeTel','届出先 連絡先')}
+  ${inp('loss.todokeDate','届出年月日','date')}${inp('loss.todokeNo','紛失届 番号')}</div></div>
+  <div class="card"><h2>再作の指定（タイプ・サイズ・カラー）</h2><div class="g2">
+  ${inp('loss.colorL','カラー（左）')}${inp('loss.colorR','カラー（右）')}
+  ${inp('loss.sizeL','レシーバーサイズ（左）')}${inp('loss.sizeR','レシーバーサイズ（右）')}
+  ${inp('loss.domeL','耳せん（左）')}${inp('loss.domeR','耳せん（右）')}</div>
+  <p class="note">サイン欄は印刷後に手書きでご記入ください。</p></div>`}
+ $('#secs').innerHTML=h;bind();draw()}
+function bind(){document.querySelectorAll('[data-b]').forEach(el=>{el.oninput=()=>{setP(el.dataset.b,el.value);save();draw()}});
+ document.querySelectorAll('[data-chip]').forEach(b=>b.onclick=()=>{const[path,id,single]=b.dataset.chip.split('|');
+  if(path==='repair.shopConfirm'){V.repair.shopConfirm=!V.repair.shopConfirm}
+  else if(path==='repair.telConsult'){V.repair.telConsult=!V.repair.telConsult}
+  else if(single==='1'){setP(path,getP(path)===id?'':id);if(path==='loss.amount'){} }
+  else{const a=getP(path);const i=a.indexOf(id);i>=0?a.splice(i,1):a.push(id)}
+  save();render()});
+ document.querySelectorAll('[data-ha]').forEach(b=>b.onclick=()=>{V.haSel=+b.dataset.ha;applyHa();save();render()});
+ document.querySelectorAll('[data-ear]').forEach(b=>b.onclick=()=>{V.ear=b.dataset.ear;applyHa();save();render()});
+ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{V.form=b.dataset.form;save();render()})}
+</script>
+<script>
+const cv=$('#cv'),ctx=cv.getContext('2d'),bg=new Image();
+let K=2.778;
+function T(t,x,y,s=12,align='left'){if(t==null||t==='')return;ctx.font=s+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';ctx.fillStyle='#111';ctx.textAlign=align;ctx.fillText(String(t),x,y)}
+function RA(t,x,y,s){T(t,x,y,s,'right')}
+function CK(cx,cy,s=15){ctx.font='bold '+s+'px sans-serif';ctx.fillStyle='#111';ctx.textAlign='center';ctx.fillText('✓',cx,cy+s*0.36)}
+function EL(cx,cy,rx,ry){ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke()}
+function dp(ds){if(!ds)return null;const[a,b,c]=String(ds).split('-').map(Number);return a?{y:a,m:b,d:c}:null}
+function dRA(ds,ends,y,s=11){const p=dp(ds);if(!p)return;RA(p.y,ends[0],y,s);RA(p.m,ends[1],y,s);RA(p.d,ends[2],y,s)}
+function wrap(text,x,y,maxW,s,lh,maxLines){if(!text)return;ctx.font=s+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';ctx.fillStyle='#111';ctx.textAlign='left';let line='',n=0;
+ for(const ch of String(text)){if(ctx.measureText(line+ch).width>maxW&&line){ctx.fillText(line,x,y+n*lh);n++;line=ch;if(n>=maxLines)return}else line+=ch}
+ if(line&&n<maxLines)ctx.fillText(line,x,y+n*lh)}
+function draw(){const f=FORMS[V.form];if(cv.width!==f.W){cv.width=f.W;cv.height=f.H}
+ if(bg.dataset.f!==V.form){bg.dataset.f=V.form;bg.src=f.bg;bg.onload=()=>draw();if(!bg.complete)return}
+ if(!bg.complete||!bg.naturalWidth)return;
+ K=f.W/f.pw;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(bg,0,0,cv.width,cv.height);ctx.setTransform(K,0,0,K,0,0);
+ const c=V.common;
+ if(V.form==='repair'){const v=V.repair;
+  T(c.shop,116,372,12);T(c.staff,428,372,12);dRA(v.dateR,[196,253,311],393.5);T(c.tel,428,397.5,11.5);
+  T(c.cust,116,423,12.5);T(c.fax,428,423,11.5);T(c.model,116,446.5,11.5);
+  if(V.ear!=='L')T(c.noR,350,446.5,11);if(V.ear!=='R')T(c.noL,472,446.5,11);
+  dRA(c.buy,[196,253,311],472.5);
+  for(const id of v.kinds){const p=KIND_CK[id];if(p)CK(p[0],p[1],p[2])}
+  if(v.kinds.includes('hf4'))T(v.hf4text,480,327,9.5);
+  for(const s of SYMS)if(v.syms.includes(s[0]))EL((s[2]+s[3])/2,s[4],(s[3]-s[2])/2+4.5,8.5);
+  if(v.days)RA(v.days,373,505.5,9.5);if(v.hours)RA(v.hours,373,535.5,9.5);
+  if(v.syms.includes('tegus')){if(v.tegusType==='1')EL(419,576.3,9,8.5);if(v.tegusType==='ring')EL(435.5,576.3,7.5,8.5);if(v.tegusMm)RA(v.tegusMm,424,595.5,9.5)}
+  if(v.comment){const F='10.5px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';ctx.font=F;const ch=[...v.comment];let l1='';while(ch.length&&ctx.measureText(l1+ch[0]).width<=380)l1+=ch.shift();T(l1,166,619,10.5);if(ch.length){let l2='';while(ch.length&&ctx.measureText(l2+ch[0]).width<=291)l2+=ch.shift();T(l2,255,634.5,10.5)}}
+  if(v.shopConfirm)CK(126.6,630.9,15);
+  for(const a of ACCS)if(v.accs.includes(a[0]))EL((a[2]+a[3])/2,a[4],(a[3]-a[2])/2+4.5,8.5);
+  if(v.caseNum)T(v.caseNum,158,669.5,10);if(v.batNum)RA(v.batNum,192,683.5,10);
+  if(v.mihonText)T(v.mihonText,477,697.5,10);if(v.sonotaText)T(v.sonotaText,160,711.5,10);
+  if(v.telConsult)CK(126.6,732.7,15);
+  wrap(v.memo,140,758,395,10.5,15.5,2);
+  const ap=dp(v.arrival);if(ap){RA(ap.m,176,811.5,11);RA(ap.d,233,811.5,11)}
+ }else{const v=V.loss;
+  dRA(v.date,[196,253,296],123.5);T(c.shop,118,156.5,12);T(c.tel,400,156.5,11.5);T(c.staff,118,182.5,12);
+  T(c.cust,118,216.5,12.5);dRA(c.buy,[454,495,527],216.5);T(c.model,48,270.5,12);
+  if(V.ear==='R')EL(377,264.5,25,11.5);if(V.ear==='L')EL(428,264.5,25,11.5);if(V.ear==='B')EL(492,264.5,24,11.5);
+  T(v.serial,48,319.5,11.5);
+  if(v.amount==='all')EL(400,288.5,19,11);if(v.amount==='half')EL(469,288.5,19,11);
+  T(v.todokePlace,48,381.5,11);T(v.todokeTel,317,381.5,11);dRA(v.todokeDate,[165,211,231],428.5);T(v.todokeNo,317,428.5,11);
+  T(v.colorL,148,500.5,11);T(v.colorR,355,500.5,11);T(v.sizeL,148,527.5,11);T(v.sizeR,355,527.5,11);T(v.domeL,148,554.5,11);T(v.domeR,355,554.5,11);
+ }}
+async function jpegBlobOf(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const c2=document.createElement('canvas');c2.width=i.naturalWidth;c2.height=i.naturalHeight;c2.getContext('2d').drawImage(i,0,0);c2.toBlob(res,'image/jpeg',0.92)};i.onerror=rej;i.src=src})}
+async function build(){const f=FORMS[V.form];const{PDFDocument}=PDFLib;const doc=await PDFDocument.create();
+ const add=async blob=>{const img=await doc.embedJpg(await blob.arrayBuffer());const pg=doc.addPage([f.pw,f.ph]);pg.drawImage(img,{x:0,y:0,width:f.pw,height:f.ph})};
+ if(V.form==='repair')await add(await jpegBlobOf(f.bg1));
+ await add(await new Promise(r=>cv.toBlob(r,'image/jpeg',0.92)));
+ return new Blob([await doc.save()],{type:'application/pdf'})}
+$('#dl').onclick=async()=>{try{const b=await build();const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=FORMS[V.form].file+'_'+(V.common.cust||'依頼書')+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}catch(e){alert('PDFを作成できませんでした')}};
+function dbSaveReq(){if(!CID){alert('顧客管理の顧客画面から開くと、履歴に保存できます。');return false}
+let db=null;try{db=JSON.parse(localStorage.getItem('njhc')||'null')}catch(e){}
+const cu=db&&(db.cs||[]).find(x=>String(x.id)===String(CID));if(!cu){alert('顧客管理に該当の顧客が見つかりませんでした。');return false}
+cu.reqs=cu.reqs||[];
+const rec={id:RID?+RID:Date.now(),date:(V.form==='repair'?(V.repair&&V.repair.date):(V.loss&&V.loss.date))||'',kind:V.form,formName:V.form==='repair'?'修理依頼書':'紛失保証注文書',summary:((V.common&&V.common.model)||'')+(V.ear==='R'?' 右耳':V.ear==='L'?' 左耳':V.ear==='B'?' 両耳':''),data:JSON.parse(JSON.stringify(V)),savedAt:Date.now()};
+const ix=cu.reqs.findIndex(x=>String(x.id)===String(rec.id));if(ix>=0)cu.reqs[ix]=rec;else cu.reqs.push(rec);
+try{localStorage.setItem('njhc',JSON.stringify(db))}catch(e){alert('保存できませんでした（端末の容量不足の可能性があります）');return false}
+RID=rec.id;return true}
+if($('#dbSave'))$('#dbSave').onclick=()=>{save();if(dbSaveReq())alert('保存しました：この顧客の依頼書の履歴に登録しました。')};
+$('#clr').onclick=()=>{if(!confirm('入力内容をクリアしますか？'))return;V={form:V.form,common:defCommon(),repair:defRepair(),loss:defLoss(),haSel:HAS.length-1,ear:'B'};for(const k of['shop','staff','tel','fax','cust'])if(P.get(k))V.common[k]=P.get(k);if(CUST&&!V.common.cust)V.common.cust=CUST.name||'';if(HAS.length&&V.haSel>=0)applyHa();save();render()};
+if($('#toCust'))$('#toCust').onclick=()=>{save();if(CID){if(!dbSaveReq())return;try{localStorage.setItem('njh_open_cust',JSON.stringify({id:CID,tab:'r'}))}catch(e){}}location.href='../../customer.html'};
+$('#pr').onclick=async()=>{try{const b=await build();const u=URL.createObjectURL(b);window.open(u,'_blank')}catch(e){alert('印刷用PDFを作成できませんでした')}};
+let RESTORED=false;
+if(RID){try{const D2=JSON.parse(localStorage.getItem('njhc')||'null');const cu=D2&&CID?(D2.cs||[]).find(x=>String(x.id)===String(CID)):null;const rec=cu&&(cu.reqs||[]).find(x=>String(x.id)===String(RID));if(rec&&rec.data){Object.assign(V,rec.data);RESTORED=true}}catch(e){}}
+if(HAS.length&&V.haSel>=0&&!RESTORED)applyHa();
+render();
+</script>
+</body>
+</html>

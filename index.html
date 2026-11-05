@@ -6,14 +6,14 @@
     <meta name="theme-color" content="#1a365d">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="NJH業務アシスト">
+    <meta name="apple-mobile-web-app-title" content="NJHチャットボット注文書">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="description" content="Beltone / Unitron 書類・マニュアル検索（NJH連携）">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
-    <title>NJHチャットボット</title>
+    <title>NJHチャットボット注文書</title>
     <style>
         :root {
             --primary: #1a365d;
@@ -933,9 +933,10 @@ img,canvas,table{max-width:100%}
     <div class="top-actions">
         <button type="button" class="home-btn" onclick="resetAll()">🏠 最初に戻る</button>
     </div>
-    <h1>NJHチャットボット</h1>
+    <h1>NJHチャットボット注文書</h1>
     <div class="subtitle">Beltone / Unitron 書類・マニュアル検索（NJH連携）</div>
 
+    
     <div class="quick-row three">
         <a class="quick-card quick-order" href="./order/index.html" id="quickHaOrder">
             <span class="q-ico">✍️</span>
@@ -1148,30 +1149,41 @@ img,canvas,table{max-width:100%}
     const faqData = {
         "order_app": {
             "q1": {
-                text: "Unitron 注文書を作成（5様式）",
+                text: "Unitron 注文書を作成（7様式）",
                 answer: `<div class="note">機種を選ぶと入力画面が開きます（PDF保存・印刷/FAX・メール・LINE共有）</div>
+                    <a class="in-app" href="./order/index.html#form-insera_sr">Insera Smile R（充電式オーダーメイド）</a>
                     <a class="in-app" href="./order/index.html#form-moxisr">Moxi S-R</a>
                     <a class="in-app" href="./order/index.html#form-vivante">Moxi Vivante R / 312 / RS</a>
                     <a class="in-app" href="./order/index.html#form-stride">Stride V-PR</a>
                     <a class="in-app" href="./order/index.html#form-stride_sp">Stride V-SP / UP</a>
-                    <a class="in-app" href="./order/index.html#form-moxiblu">Moxi Blu R / 312</a>`
+                    <a class="in-app" href="./order/index.html#form-moxiblu">Moxi Blu R / 312</a>
+                    <a class="in-app" href="./order/index.html#form-uni_mold">RIC用モールド</a>`
             },
             "q2": {
-                text: "Beltone 注文書を作成（9様式）",
+                text: "Beltone 注文書を作成（12様式）",
                 answer: `<div class="note">機種を選ぶと入力画面が開きます（PDF保存・印刷/FAX・メール・LINE共有）</div>
+                    <a class="in-app" href="./order/index.html#form-beltone_custom">充電式オーダーメイド</a>
                     <a class="in-app" href="./order/index.html#form-env6264">Envision 62S / 64DW</a>
                     <a class="in-app" href="./order/index.html#form-envcros">Envision クロス送信機</a>
                     <a class="in-app" href="./order/index.html#form-commence">Commence 62 / 64DW</a>
                     <a class="in-app" href="./order/index.html#form-serene6263">Serene 62S / 63DW</a>
                     <a class="in-app" href="./order/index.html#form-serene7686">Serene 76 / 86 DW</a>
+                    <a class="in-app" href="./order/index.html#form-serene_cros">Serene クロス送信機</a>
                     <a class="in-app" href="./order/index.html#form-rely_ric">Rely RIC</a>
                     <a class="in-app" href="./order/index.html#form-rely_bte">Rely BTE</a>
                     <a class="in-app" href="./order/index.html#form-boost_max">Boost Max S</a>
-                    <a class="in-app" href="./order/index.html#form-boost_ultra">Boost Ultra</a>`
+                    <a class="in-app" href="./order/index.html#form-boost_ultra">Boost Ultra</a>
+                    <a class="in-app" href="./order/index.html#form-bel_mold">RIC用モールド</a>`
             },
             "q3": {
                 text: "全様式の一覧から選ぶ",
-                answer: `<a class="in-app" href="./order/index.html">注文書作成アプリを開く（Beltone / Unitron）</a>`
+                answer: `<a class="in-app" href="./order/index.html">注文書作成アプリを開く（Beltone / Unitron / その他）</a>`
+            },
+            "q4": {
+                text: "その他の注文書を作成（安心ほしょう・イヤモールド）",
+                answer: `<div class="note">自動入力の対象でない器種や、保証プラン・イヤモールドの注文に使います</div>
+                    <a class="in-app" href="./order/index.html#form-hosho">NJH安心ほしょう（保証プラン注文書）</a>
+                    <a class="in-app" href="./order/202610_earmold_ordersheet.xlsx">イヤモールド注文書 (Excel)</a>`
             }
         },
         "order_custom": {
@@ -1183,11 +1195,13 @@ img,canvas,table{max-width:100%}
             },
             "q2": {
                 text: "Beltone 充電式オーダーメイド注文書",
-                answer: `<a href="${BASE}/uploads/202503_Beltone_order.pdf" target="_blank" rel="noopener">Beltone 充電式オーダーメイド注文書 (PDF)</a>`
+                answer: `<a href="${BASE}/uploads/202503_Beltone_order.pdf" target="_blank" rel="noopener">Beltone 充電式オーダーメイド注文書 (PDF)</a>
+                    <a class="in-app" href="./order/index.html#form-beltone_custom">📱 アプリで入力して作成（Beltone 充電式オーダーメイド）</a>`
             },
             "q3": {
                 text: "Unitron 充電式オーダーメイド注文書",
-                answer: `<a href="${BASE}/uploads/202604_InseraS-R.pdf" target="_blank" rel="noopener">Unitron 充電式オーダーメイド注文書 (PDF)</a>`
+                answer: `<a href="${BASE}/uploads/202604_InseraS-R.pdf" target="_blank" rel="noopener">Unitron 充電式オーダーメイド注文書 (PDF)</a>
+                    <a class="in-app" href="./order/index.html#form-insera_sr">📱 アプリで入力して作成（Insera Smile R）</a>`
             },
             "q4": {
                 text: "イヤーモールド注文書 (PDF / Excel)",
@@ -1197,7 +1211,9 @@ img,canvas,table{max-width:100%}
             "q5": {
                 text: "RICモールド注文書 (Beltone / Unitron)",
                 answer: `<a href="${BASE}/uploads/202511_bel_mold.pdf" target="_blank" rel="noopener">Beltone RICモールド注文書</a>
-                    <a href="${BASE}/uploads/202602_uni_mold.pdf" target="_blank" rel="noopener">Unitron RICモールド注文書</a>`
+                    <a href="${BASE}/uploads/202602_uni_mold.pdf" target="_blank" rel="noopener">Unitron RICモールド注文書</a>
+                    <a class="in-app" href="./order/index.html#form-bel_mold">📱 アプリで入力して作成（Beltone RICモールド）</a>
+                    <a class="in-app" href="./order/index.html#form-uni_mold">📱 アプリで入力して作成（Unitron RICモールド）</a>`
             }
         },
         "order_ric": {
@@ -1235,12 +1251,14 @@ img,canvas,table{max-width:100%}
             "q1": {
                 text: "修理依頼書 / 再作依頼書など",
                 answer: `<div class="note">印刷してお使いください（修理依頼書は2026年4月新版）</div>
+                    <a class="in-app" href="./order/repair/index.html?form=repair">📱 アプリで入力して作成（修理依頼書）</a>
                     <a href="${BASE}/uploads/202604_%E4%BF%AE%E7%90%86%E4%BE%9D%E9%A0%BC%E6%9B%B8.pdf" target="_blank" rel="noopener">補聴器 修理依頼書</a>
                     <a href="${BASE}/uploads/_10.pdf" target="_blank" rel="noopener">オーダーメイド再作依頼書</a>`
             },
             "q2": {
                 text: "安心ほしょう / 紛失保証 注文書",
                 answer: `<a href="${BASE}/uploads/202604_%E5%AE%89%E5%BF%83%E3%81%BB%E3%81%97%E3%82%87%E3%81%86%E6%B3%A8%E6%96%87%E6%9B%B8.pdf" target="_blank" rel="noopener">安心ほしょう注文書</a>
+                    <a class="in-app" href="./order/repair/index.html?form=loss">📱 アプリで入力して作成（紛失保証注文書）</a>
                     <a href="${BASE}/uploads/20241015_funshitsuhoshou_order.pdf" target="_blank" rel="noopener">補聴器紛失保証専用注文書</a>`
             }
         },
@@ -2947,6 +2965,20 @@ function cFname() {
                 .catch((err) => console.log('Service Worker registration failed:', err));
         });
     }
+</script>
+
+<script>
+// NJHサイトの資料リンク（/uploads/）が切れている場合は、販売店向け資料ページに自動で切り替える
+(function(){
+  var FALLBACK='https://www.njha.co.jp/dealers/';
+  function guard(a){
+    if(a.dataset.guarded)return;a.dataset.guarded='1';
+    fetch(a.href,{method:'GET',cache:'no-store'}).then(function(r){if(!r.ok)a.href=FALLBACK}).catch(function(){});
+  }
+  function scan(root){(root||document).querySelectorAll('a[href*="njha.co.jp/uploads/"]').forEach(guard)}
+  if(document.readyState!=='loading')scan();else document.addEventListener('DOMContentLoaded',function(){scan()});
+  new MutationObserver(function(ms){ms.forEach(function(m){m.addedNodes.forEach(function(n){if(n.querySelectorAll)scan(n)})})}).observe(document.documentElement,{childList:true,subtree:true});
+})();
 </script>
 
 </body>

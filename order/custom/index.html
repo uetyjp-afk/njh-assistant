@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>オーダーメイド注文書</title>
+<meta name="theme-color" content="#1f8a4c">
+<style>
+:root{--bg:#f5f6f4;--card:#fff;--tx:#1d2521;--mu:#68736d;--ln:#d9dfdb;--ac:#1f8a4c;--ac2:#e8f4ec;box-sizing:border-box}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#151a17;--card:#1f2622;--tx:#e8eeea;--mu:#9aa6a0;--ln:#34403a;--ac:#4cc27f;--ac2:#1f3a2b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans JP",sans-serif}
+header{padding:12px 16px 4px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{font-size:17px;margin:0;color:var(--ac)}
+.brand p{margin:0;color:var(--mu);font-size:12px}
+header>p{margin:6px 0 0;color:var(--mu);font-size:12.5px}
+nav{display:flex;gap:8px;overflow-x:auto;padding:10px 16px}
+nav button{flex:none;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;padding:8px 12px;text-align:left;cursor:pointer;font:inherit}
+nav button small{display:block;color:var(--mu);font-size:11px}
+nav button.on{border-color:var(--ac);background:var(--ac2)}
+main{display:grid;grid-template-columns:minmax(300px,440px) minmax(0,1fr);gap:14px;padding:0 16px 24px;align-items:start}
+@media(max-width:860px){main{grid-template-columns:1fr}#pv{order:-1;position:static!important}}
+#ui,#pv{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px}
+#pv{position:sticky;top:8px}
+h2{font-size:13px;margin:14px 0 6px;color:var(--ac);border-bottom:1px solid var(--ln);padding-bottom:3px}
+h2:first-child{margin-top:0}
+.req{color:#c62828;font-weight:700;font-size:11px}
+.r{margin:6px 0}
+.r>label,.r>b{display:block;font-size:12px;color:var(--mu);margin-bottom:2px;font-weight:400}
+input[type=text],input[type=number],textarea{width:100%;border:1px solid var(--ln);border-radius:8px;padding:8px 9px;background:var(--bg);color:var(--tx);font:inherit;min-height:38px}
+input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,transparent);outline-offset:1px}
+.auto-value{display:inline-flex;align-items:center;justify-content:center;min-width:4.5em;min-height:38px;padding:6px 10px;border:1px solid var(--ac);border-radius:8px;background:var(--ac2);font-weight:700}
+.date-help{font-size:11px;color:var(--mu);margin:3px 0 0}
+.mini-actions{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+.mini-actions button{border:1px solid var(--ln);background:transparent;color:var(--tx);border-radius:8px;padding:6px 9px;font:inherit;font-size:12px;cursor:pointer}
+.dt{display:flex;gap:6px;align-items:center}
+.dt input{width:4.4em;text-align:center}
+.dt input.y{width:5.4em}
+.phone3{gap:4px}
+.phone3 input{width:4em!important}
+.phone3 span{font-weight:700;color:var(--mu)}
+.ch{display:flex;flex-wrap:wrap;gap:6px}
+.ch button{border:1px solid var(--ln);background:var(--bg);color:var(--tx);border-radius:999px;padding:5px 11px;font:inherit;font-size:13.5px;cursor:pointer}
+.ch button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.ear{font-size:11px;color:var(--mu);margin:4px 0 1px}
+.ear-choice{margin:7px 0;padding:6px 8px;border-radius:9px;border:1px solid var(--ln)}
+.ear-choice .ear-label{font-size:12px;font-weight:700;margin-bottom:4px}
+.ear-choice.R{background:#fff3f3;border-color:#e6a4a4}
+.ear-choice.R .ear-label{color:#c62828}
+.ear-choice.L{background:#f1f5ff;border-color:#9eb5e8}
+.ear-choice.L .ear-label{color:#2457a6}
+.ear-choice.R button.on{background:#c62828;border-color:#c62828}
+.ear-choice.L button.on{background:#2457a6;border-color:#2457a6}
+.au{overflow-x:auto}
+.au table{border-collapse:collapse;font-size:12px}
+.au td,.au th{padding:2px}
+.au input{width:3.6em;padding:5px 3px;text-align:center}
+.cv{position:relative;width:100%;max-width:640px;margin:0 auto;aspect-ratio:595/842;border:1px solid var(--ln);background:#fff}
+.cv img,.cv canvas{position:absolute;inset:0;width:100%;height:100%}
+.bar{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.go{flex:1;min-width:180px;border:0;border-radius:10px;background:var(--ac);color:#fff;padding:12px;font:inherit;font-weight:700;cursor:pointer}
+.go:disabled{opacity:.5}
+.sub{border:1px solid var(--ln);background:transparent;color:var(--tx);border-radius:10px;padding:11px 14px;font:inherit;cursor:pointer}
+#msg{font-size:12.5px;color:var(--mu);margin-top:6px;min-height:1.4em}
+.hint{font-size:12px;color:var(--mu)}
+.back{display:inline-block;margin:0 0 8px;color:var(--ac);text-decoration:none;font-size:13px}
+@media print{header,nav,#ui,.bar,#msg,.back{display:none!important}body{background:#fff}main{display:block;padding:0}#pv{border:0;padding:0;position:static}.cv{max-width:none;border:0;width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../index.html">← 注文書一覧へ</a>
+  <div class="brand">
+    <div>
+      <h1>オーダーメイド注文書</h1>
+      <p>Insera Smile R / Beltone 充電式　オージオグラム対応</p>
+    </div>
+  </div>
+  <p>原本PDFに位置を合わせて入力内容を転記します。店名・担当者・電話番号は端末内に保存します。商品コードは記載しません。</p>
+</header>
+<nav id="nav"></nav>
+<main>
+  <section id="ui"></section>
+  <section id="pv">
+    <div class="cv"><img id="bg" alt=""><canvas id="cv"></canvas></div>
+
+    <div class="bar">
+      <button class="go" id="go">PDFで保存</button>
+<button class="sub" id="print" type="button">印刷</button>
+<button class="sub" id="toParts" type="button">🔩 備品も注文</button>
+
+
+    </div>
+<button class="go" id="both" type="button" disabled style="background:#2b6cb0;margin-top:8px">補聴器と備品の注文を送る（PDFまとめて）</button>
+<p class="hint" id="bothHint" style="margin:6px 0 0"></p>
+    <div id="msg"></div>
+  </section>
+</main>
+<script src="./pdf-lib.min.js"></script>
+<script>
+const PDFS=["./insera.pdf","./beltone.pdf"];
+const EAR={B:"両耳",R:"右耳のみ",L:"左耳のみ"},EN={B:"両耳",R:"右耳",L:"左耳"};
+const FONT='"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP","Noto Sans JP",sans-serif';
+const S=3,td=new Date();
+const V={ears:"B",odY:td.getFullYear(),odM:td.getMonth()+1,odD:td.getDate()};
+try{Object.assign(V,JSON.parse(localStorage.getItem("njh_custom_v")||"{}"))}catch(e){}
+try{
+  const q=new URLSearchParams(location.search);
+  if(q.get("shop"))V.shop=q.get("shop");
+  if(q.get("staff"))V.staff=q.get("staff");
+  if(q.get("cust"))V.cust=q.get("cust");
+  if(q.get("kana"))V.kana=q.get("kana");
+  if(q.get("sex")==="男")V.sex=0; if(q.get("sex")==="女")V.sex=1;
+  if(q.get("age"))V.age=q.get("age");
+  if(q.get("au")){try{const au=JSON.parse(q.get("au"));["R","L"].forEach(e=>{const ac=(au.ac||{})[e]||{},bc=(au.bc||{})[e]||{};Object.keys(ac).forEach(f=>{if(ac[f]!==''&&ac[f]!=null)V["a"+e+f]=ac[f]});Object.keys(bc).forEach(f=>{if(bc[f]!==''&&bc[f]!=null)V["b"+e+f]=bc[f]})});if(au.date&&!V.mdate){const d=String(au.date).split("-");if(d.length===3)V.mdate=(+d[1])+"/"+(+d[2])}}catch(e){}}
+  if(q.get("tel")){const t=q.get("tel").replace(/[^0-9]/g,"");if(t.length>=10){V.tel1=t.slice(0,t.length-8);V.tel2=t.slice(-8,-4);V.tel3=t.slice(-4)}}
+  if(q.get("form")==="bel"){/* select bel later */}
+}catch(e){}
+try{
+  const s=JSON.parse(localStorage.getItem("njhc")||"{}");
+  if(s.shop){if(!V.shop&&s.shop.name)V.shop=s.shop.name;if(!V.staff&&s.shop.staff)V.staff=s.shop.staff;if(!V.tel1&&s.shop.tel){const t=String(s.shop.tel).replace(/[^0-9]/g,"");if(t.length>=10){V.tel1=t.slice(0,t.length-8);V.tel2=t.slice(-8,-4);V.tel3=t.slice(-4)}}}
+}catch(e){}
+
+/* ========== 様式定義（PDF座標・A4 595x842pt） ========== */
+const FORMS=[
+{
+  id:"smr",
+  name:"Insera Smile R",
+  sub:"Unitron 充電式オーダーメイド",
+  pdf:0,
+  img:"../img/custom/insera_sr-1.png",
+  note:{x:404,y:515.7,w:168,lh:14,fs:8.5,n:8},
+  audio:{
+    x:{"125":335.1,"250":364.7,"500":394.4,"1000":424,"2000":453.6,"3000":468.4,"4000":483.2,"8000":512.8},
+    y0:158.5,k:1.078,dx:472,dy:146.5
+  },
+  f:[
+    {t:"h",l:"基本情報"},
+    {t:"d",k:"od",l:"ご注文日",xs:[191,230,268],y:150,fs:10},
+    {t:"t",k:"shop",l:"貴店名",x:60,y:188,w:222,fs:11,a:"l"},
+    {t:"t",k:"staff",l:"ご担当者",x:60,y:212,w:48,fs:10,a:"l"},
+    {t:"ph",k:"tel",l:"電話番号",d:[[236,212],[254,212],[278,212]]},
+    {t:"t",k:"kana",l:"ふりがな",x:60,y:230,w:210,fs:8,a:"l"},
+    {t:"t",k:"cust",l:"お客様名",x:60,y:272,w:196,fs:12,a:"l"},
+    {t:"r",k:"sex",l:"性別",m:"o",r:8.5,o:[["男",[290.8,231]],["女",[291.1,269.5]]]},
+    {t:"bd",k:"bd",l:"生年月日",xs:[164,203,239,288],y:297},
+    {t:"h",l:"① グレード・パワー・フェースプレート"},
+    {t:"r",k:"g",l:"グレード",o:[["9",[40.3,341.3]],["7",[40.3,360.3]],["5",[40.3,379.3]],["3",[40.3,398.3]],["1",[40.3,417.3]]]},
+    {t:"r",k:"pw",l:"パワー",o:[["M",[111.6,343.8]],["P",[111.6,367.5]],["SP(HP)",[111.6,391.1]],["UP",[111.6,414.8]]]},
+    {t:"r",k:"fp",l:"フェースプレート",e:1,o:[["ブラック",[219,343.1],[219,359.3]],["ベージュ",[259.9,343.1],[259.9,359.3]]]},
+    {t:"h",l:"④ シェル色"},
+    {t:"r",k:"sc",l:"シェル色",e:1,o:[
+      ["ベージュ",[333.7,343.1],[333.7,359.3]],["ホワイト",[365.8,343.1],[365.8,359.3]],["レッド",[397.9,343.1],[397.9,359.3]],["ピンク",[429.9,343.1],[429.9,359.3]],
+      ["チャコール",[462,343.1],[462,359.3]],["ブラック",[494.1,343.1],[494.1,359.3]],["ブルー",[526.2,343.1],[526.2,359.3]],["ライトブルー",[558.2,343.1],[558.2,359.3]]
+    ]},
+    {t:"h",l:"⑤ オプション"},
+    {t:"r",k:"tg",l:"テグス",o:[["1本テグス",[94.1,456.5]],["輪テグス",[270.6,456.1]],["なし",[93.8,473.2]]]},
+    {t:"tx",k:"tg1",l:"1本テグスの長さ（mm）",cond:["tg",0],x:218,y:461.5,w:36,fs:9,a:"c"},
+    {t:"tx",k:"tg2",l:"輪テグスの長さ（mm）",cond:["tg",1],x:365,y:461.5,w:36,fs:9,a:"c"},
+    {t:"r",k:"vt",l:"ベント",e:1,o:[["段付き",[121.4,493.3],[121.2,513.6]],["おまかせ",[223.4,493.3],[223.4,513.7]],["無",[325.5,493.3],[325.6,513.7]]]},
+    {t:"r",k:"ea",l:"耳あか防止",o:[["ワックスフィルター",[93.9,533.1]],["HF-4",[231.6,533.1]],["他",[300,533.1]]]},
+    {t:"h",l:"シェル・仕上げ指定（オプション欄の右側）"},
+    {t:"c",k:"sh1",l:"できるだけ小さく",p:[410.8,450.6]},
+    {t:"c",k:"sh2",l:"出し入れ重視",p:[481.5,450.6]},
+    {t:"c",k:"sh3",l:"シェル全体きつめ",p:[410.8,460]},
+    {t:"c",k:"sh4",l:"シェル全体ゆるめ",p:[481.5,460]},
+    {t:"c",k:"sh5",l:"シェル先端長め",p:[410.8,469.5]},
+    {t:"c",k:"sh6",l:"シェル先端短め",p:[481.5,469.5]},
+    {t:"c",k:"sh7",l:"シェル先端細く",p:[410.8,478.9]},
+    {t:"c",k:"sh8",l:"UVコート",p:[481.5,478.9]},
+    {t:"c",k:"sh9",l:"延長チューブ加工",p:[410.8,488.3]},
+    {t:"c",k:"sh10",l:"ベル加工",p:[481.5,488.3]},
+    {t:"c",k:"sh11",l:"ハーフサイズ希望",p:[410.8,497.7]},
+    {t:"c",k:"sh12",l:"その他（シェル指定）",p:[481.5,497.7]},
+    {t:"r",k:"ch",l:"充電器（不要な場合のみチェック）",o:[["不要",[93.8,553]]]},
+    {t:"nm",k:"nm",l:"名入れ",p:[93.8,575.1],x:133,y:580,w:250,fs:9},
+    {t:"c",k:"dx",l:"DXリモコン",p:[93.6,602.2]},
+    {t:"c",k:"tv",l:"TVコネクター",p:[204.6,602.2]},
+    {t:"c",k:"pm",l:"パートナーマイク",p:[310.8,602.2]},
+    {t:"c",k:"q1",l:"電話相談（製作・仕様・形状）",p:[405.9,630.1]},
+    {t:"c",k:"q2",l:"電話相談（納期・価格）",p:[405.8,639.3]},
+    {t:"tx",k:"wish",l:"ご希望納期（例 11/20）",x:524,y:641,w:52,fs:9.5,a:"c"},
+    {t:"t",k:"total",l:"合計金額(円)",x:376,y:634,w:250,fs:12,a:"r"},
+    {t:"h",l:"⑦ お客様プロフィール"},
+    {t:"r",k:"exp",l:"補聴器のご経験",m:"e",o:[["使用中（右・左・両耳）",[134.8,676],57],["経験なし",[216.7,676],19],["過去経験あり",[268.4,676],27]]}
+  ]
+},
+{
+  id:"bel",
+  name:"Beltone 充電式オーダーメイド",
+  sub:"カナルDWC / カスタムDWC",
+  pdf:1,
+  img:"../img/custom/beltone_custom-1.png",
+  note:{x:404,y:476,w:168,lh:18.1,fs:9,n:9},
+  audio:{
+    x:{"125":333.7,"250":363.3,"500":392.9,"1000":422.6,"2000":452.2,"3000":467,"4000":481.8,"8000":511.4},
+    y0:158.5,k:1.078,dx:470.5,dy:146.5
+  },
+  f:[
+    {t:"h",l:"基本情報"},
+    {t:"d",k:"od",l:"ご注文日",xs:[148,212,275],y:154,fs:10},
+    {t:"t",k:"shop",l:"貴店名",x:60,y:190,w:210,fs:11,a:"l"},
+    {t:"t",k:"staff",l:"ご担当者",x:60,y:212,w:45,fs:10,a:"l"},
+    {t:"ph",k:"tel",l:"電話番号",d:[[226,212],[243,212],[267,212]]},
+    {t:"t",k:"kana",l:"ふりがな",x:60,y:229,w:198,fs:8,a:"l"},
+    {t:"t",k:"cust",l:"お客様名",x:60,y:275,w:185,fs:12,a:"l"},
+    {t:"r",k:"sex",l:"性別",m:"o",r:8.5,o:[["男",[278.1,230]],["女",[278.3,267]]]},
+    {t:"bd",k:"bd",l:"生年月日",xs:[158,195,229,275],y:293},
+    {t:"h",l:"① サイズ・パワー・カラー"},
+    {t:"r",k:"shape",l:"サイズ",o:[["カナルDWC",[182.1,345.8]],["カスタムDWC",[181.9,397.3]]]},
+    {t:"r",k:"pw",l:"パワー（サイズで位置が変わります）",s:"shape",o:[["LP",[329.3,343.1],null],["HP",[384.7,343.1],[384.4,387.4]],["MP",[329.3,363.5],[329.7,407.8]],["UP",[384.7,363.5],[384.7,407.8]]]},
+    {t:"r",k:"col",l:"カラー",e:1,o:[["チャコール",[479.8,343.1],[479.8,362.2]],["ベージュ",[549.4,343.1],[549.4,362.2]]]},
+    {t:"h",l:"⑤ オプション"},
+    {t:"r",k:"tg",l:"テグス",o:[["1本テグス",[94.1,449.3]],["輪テグス",[195.1,448.9]],["なし",[295.1,448.9]]]},
+    {t:"r",k:"vt",l:"ベント",e:1,o:[["段付き",[121.4,471.4],[121.2,491.8]],["おまかせ",[166.9,471.4],[166.9,491.9]],["無",[221.8,471.4],[221.2,491.9]]]},
+    {t:"r",k:"ea",l:"耳あか防止装置",o:[["ワックスフィルター",[308.5,472.2]],["HF-4",[308.3,492.1]],["HF-3",[356.5,492.1]]]},
+    {t:"r",k:"ch",l:"充電器",o:[["必要",[93.8,514.6]],["不要",[140.9,514.6]]]},
+    {t:"r",k:"tip",l:"シェル先端",o:[["長め",[258,514.2]],["短め",[300.3,514.9]],["おまかせ",[346.3,514.9]]]},
+    {t:"nm",k:"nm",l:"名入れ（ローマ字15文字まで）",p:[93.8,539.2],x:190,y:553,w:195,fs:9},
+    {t:"c",k:"tvs",l:"TVストリーマー+（Auracast対応）",p:[93.8,570.2]},
+    {t:"c",k:"mm",l:"マルチマイク+（Auracast対応）",p:[221.8,570.2]},
+    {t:"c",k:"mini",l:"ミニリモコン",p:[93.8,586.1]},
+    {t:"c",k:"tvl",l:"テレビリンク2",p:[221.8,586.1]},
+    {t:"c",k:"vlp",l:"ボイスリンク・プロ",p:[93.8,599.2]},
+    {t:"c",k:"vlm",l:"ボイスリンク・マイクロ",p:[221.8,599.2]},
+    {t:"t",k:"total",l:"合計金額(円)",x:376,y:626,w:250,fs:12,a:"r"},
+    {t:"h",l:"⑦ お客様プロフィール"},
+    {t:"r",k:"exp",l:"補聴器のご経験",m:"e",o:[["使用中（右・左・両耳）",[134.8,667.5],57],["経験なし",[216.7,667.5],19],["過去経験あり",[268.4,667.5],27]]}
+  ]
+}
+];
+
+let cur=FORMS[0];
+const $=id=>document.getElementById(id);
+const cv=$("cv"),ctx=cv.getContext("2d");
+const bg=$("bg");
+const namePattern=/^[ぁ-んァ-ヶーa-zA-Z0-9 　]*$/;
+const act=e=>V.ears==="B"||V.ears===e;
+function el(tag,attrs,text){const n=document.createElement(tag);if(attrs)Object.assign(n,attrs);if(text!=null)n.textContent=text;return n}
+function row(lab,node){const d=el("div",{className:"r"});d.appendChild(el("label",0,lab));d.appendChild(node);return d}
+function requiredLabel(l,k){const need=["shop","staff","cust","g","pw","shape","ch"].includes(k);return l+(need?' <span class="req">必須</span>':"")}
+function chips(names,get,set){
+  const w=el("div",{className:"ch"});
+  names.forEach((n,i)=>{
+    const b=el("button",{type:"button"},n);
+    const sync=()=>{b.className=get()===i?"on":""};
+    b.onclick=()=>{set(get()===i?undefined:i);build()};
+    w.appendChild(b);sync();
+  });
+  return w;
+}
+function calcAge(y,m,d){
+  y=+y;m=+m;d=+d;if(!y||!m||!d)return"";
+  const t=new Date(),a=t.getFullYear()-y;const before=t.getMonth()+1<m||(t.getMonth()+1===m&&t.getDate()<d);
+  return before?a-1:a;
+}
+function save(){try{localStorage.setItem("njh_custom_v",JSON.stringify(V))}catch(e){}snapSoon()}
+function setDateToday(k){const t=new Date();V[k+"Y"]=t.getFullYear();V[k+"M"]=t.getMonth()+1;V[k+"D"]=t.getDate();build()}
+
+function build(){snapSoon();
+  save();
+  const u=$("ui");u.innerHTML="";
+  // 装用耳
+  u.appendChild(el("h2",0,"装用耳"));
+  u.appendChild(row("装用耳",chips(["両耳","右耳のみ","左耳のみ"],()=>({B:0,R:1,L:2}[V.ears]),x=>{V.ears=["B","R","L"][x];build()})));
+
+  cur.f.forEach(f=>{
+    const t=f.t;
+    if(t==="h"){u.appendChild(el("h2",0,f.l));return}
+    if(t==="t"){
+      const i=el("input",{type:"text",value:V[f.k]||"",placeholder:f.l});
+      i.oninput=()=>{V[f.k]=i.value;save();draw()};
+      u.appendChild(row(requiredLabel(f.l,f.k),i));
+    }
+    else if(t==="tx"){
+      if(f.cond&&V[f.cond[0]]!==f.cond[1])return;
+      const i=el("input",{type:"text",value:V[f.k]||"",placeholder:f.l});
+      i.oninput=()=>{V[f.k]=i.value;save();draw()};
+      u.appendChild(row(f.l,i));
+    }
+    else if(t==="ph"){
+      const w=el("div",{className:"dt phone3"});
+      const keys=["tel1","tel2","tel3"],phs=["082","263","8614"];
+      keys.forEach((k,i)=>{
+        if(i===1)w.appendChild(el("span",0,"("));
+        const inp=el("input",{type:"text",inputMode:"numeric",maxLength:i===0?5:4,value:V[k]||"",placeholder:phs[i]});
+        inp.oninput=()=>{V[k]=inp.value.replace(/[^0-9]/g,"").slice(0,4);inp.value=V[k];save();draw()};
+        w.appendChild(inp);
+        if(i===1)w.appendChild(el("span",0,")"));
+      });
+      u.appendChild(row(requiredLabel(f.l,f.k),w));
+    }
+    else if(t==="d"||t==="bd"){
+      const w=el("div",{className:"dt"});
+      const ks=t==="d"?[f.k+"Y",f.k+"M",f.k+"D"]:["bY","bM","bD"];
+      const un=["年","月","日"];
+      let ageOut;
+      ks.forEach((k,i)=>{
+        const n=el("input",{type:"number",inputMode:"numeric",value:V[k]||"",className:i?"":"y",min:i===0?1900:1,max:i===0?new Date().getFullYear()+1:i===1?12:31,placeholder:i===0?"西暦":i===1?"月":"日"});
+        n.oninput=()=>{V[k]=n.value;draw();if(t==="bd"&&ageOut)ageOut.textContent=calcAge(V.bY,V.bM,V.bD)?calcAge(V.bY,V.bM,V.bD)+"歳":"—"};
+        w.appendChild(n);w.appendChild(el("span",0,un[i]));
+      });
+      if(t==="bd"){
+        ageOut=el("output",{className:"auto-value"},calcAge(V.bY,V.bM,V.bD)?calcAge(V.bY,V.bM,V.bD)+"歳":"—");
+        w.appendChild(ageOut);
+      }
+      u.appendChild(row(requiredLabel(f.l,f.k),w));
+      if(t==="d"){
+        const q=el("button",{type:"button",className:"sub"},"今日を入力");
+        q.onclick=()=>setDateToday(f.k);
+        u.appendChild(q);
+      }
+    }
+    else if(t==="c"){
+      const b=chips([f.l],()=>V[f.k]?0:undefined,x=>V[f.k]=x===0);
+      u.appendChild(b);
+    }
+    else if(t==="nm"){
+      const b=chips(["名入れ"],()=>V[f.k]?0:undefined,x=>{V[f.k]=x===0;if(!V[f.k])V.nmText="";build()});
+      u.appendChild(b);
+      const inp=el("input",{type:"text",maxLength:15,value:V.nmText||"",placeholder:"名入れ内容",disabled:!V[f.k]});
+      inp.oninput=()=>{V.nmText=inp.value.slice(0,15);draw()};
+      u.appendChild(row("名入れ入力",inp));
+    }
+    else if(t==="r"){
+      const names=f.o.map(o=>o[0]);
+      if(f.e){
+        ["R","L"].forEach(e=>{
+          if(!act(e))return;
+          const block=el("div",{className:"ear-choice "+e});
+          block.appendChild(el("div",{className:"ear-label"},requiredLabel(f.l+"・"+EN[e],f.k)));
+          block.appendChild(chips(names,()=>V[f.k+e],x=>V[f.k+e]=x));
+          u.appendChild(block);
+        });
+      }else{
+        u.appendChild(row(requiredLabel(f.l,f.k),chips(names,()=>V[f.k],x=>V[f.k]=x)));
+      }
+    }
+  });
+
+  // オージオグラム
+  if(cur.audio){
+    u.appendChild(el("h2",0,"オージオグラム（dB HL）"));
+    const a=el("div",{className:"au"});
+    const fr=Object.keys(cur.audio.x);
+    let h="<table><tr><th></th>"+fr.map(x=>"<th>"+(+x>=1000?x/1000+"k":x)+"</th>").join("")+"</tr>";
+    ["R","L"].forEach(e=>{
+      if(!act(e))return;
+      h+="<tr><th>"+(e==="R"?"右○":"左×")+"</th>"+fr.map(x=>'<td><input type="number" inputmode="numeric" step="5" min="-10" max="120" data-e="'+e+'" data-f="'+x+'" value="'+(V["a"+e+x]??"")+'"></td>').join("")+"</tr>";
+    });
+    ["R","L"].forEach(e=>{
+      if(!act(e))return;
+      h+="<tr><th>"+(e==="R"?"右[":"左]")+"</th>"+fr.map(x=>'<td><input type="number" inputmode="numeric" step="5" min="-10" max="120" data-b="1" data-e="'+e+'" data-f="'+x+'" value="'+(V["b"+e+x]??"")+'"></td>').join("")+"</tr>";
+    });
+    a.innerHTML=h+"</table>";
+    const avgEl=el("p",{className:"hint"});
+    const updAvg=()=>{
+      const parts=[];
+      ["R","L"].forEach(e=>{
+        if(!act(e))return;
+        const vs=[500,1000,2000,4000].map(f=>V["a"+e+f]);
+        const done=vs.filter(v=>v!=null&&String(v).trim()!=="").length;
+        if(done===4){const avg=vs.reduce((s,v)=>s+(+v),0)/4;parts.push((e==="R"?"右":"左")+" 平均 "+(Math.round(avg*10)/10)+" dB")}
+        else if(done>0)parts.push((e==="R"?"右":"左")+" 入力中 "+done+"/4");
+      });
+      avgEl.textContent=parts.length?("四分法平均（500・1k・2k・4k）: "+parts.join("　／　")):"";
+    };
+    a.oninput=ev=>{const i=ev.target;V[(i.dataset.b?"b":"a")+i.dataset.e+i.dataset.f]=i.value;save();updAvg();draw()};
+    u.appendChild(a);
+    u.appendChild(avgEl);
+    updAvg();
+    const m=el("input",{type:"text",value:V.mdate||"",placeholder:"測定日 例 11/4"});
+    m.oninput=()=>{V.mdate=m.value;draw()};
+    u.appendChild(row("測定日",m));
+    u.appendChild(el("p",{className:"hint"},"気導は必須です（右耳は○、左耳は×）。骨導は任意で、右耳は [ 、左耳は ] で描画します。"));
+  }
+
+  // 備考
+  u.appendChild(el("h2",0,"備考"));
+  const nt=el("textarea",{rows:3,value:V.free||"",placeholder:"備考・特記事項（任意）"});
+  nt.oninput=()=>{V.free=nt.value;draw()};
+  u.appendChild(row("自由記入",nt));
+
+  const acts=el("div",{className:"mini-actions"});
+  const clear=el("button",{type:"button"},"この入力をクリア");
+  clear.onclick=()=>{["bY","bM","bD","cust","kana","free","nmText","mdate","total"].forEach(k=>delete V[k]);
+    Object.keys(V).filter(k=>k.startsWith("aR")||k.startsWith("aL")||k.startsWith("bR")||k.startsWith("bL")).forEach(k=>delete V[k]);
+    build()};
+  acts.appendChild(clear);
+  u.appendChild(acts);
+  draw();
+}
+
+const fit=(t,w,fs,a,x,y)=>{
+  ctx.font=(fs*S)+"px "+FONT;
+  const m=ctx.measureText(t).width/S;
+  ctx.save();ctx.translate(x*S,y*S);
+  let k=1;if(w&&m>w)k=w/m;
+  ctx.scale(k,1);
+  ctx.textAlign=a==="r"?"right":a==="c"?"center":"left";
+  ctx.fillText(t,0,0);ctx.restore();
+};
+function chk(x,y,s=10){
+  ctx.save();ctx.lineWidth=1.6*S;ctx.lineCap=ctx.lineJoin="round";ctx.strokeStyle="#0b2a6b";
+  ctx.beginPath();ctx.moveTo((x-s*.34)*S,(y+s*.02)*S);ctx.lineTo((x-s*.08)*S,(y+s*.32)*S);ctx.lineTo((x+s*.42)*S,(y-s*.42)*S);ctx.stroke();ctx.restore();
+}
+function circ(x,y,r){
+  ctx.save();ctx.lineWidth=1.2*S;ctx.strokeStyle="#0b2a6b";
+  ctx.beginPath();ctx.arc(x*S,y*S,r*S,0,7);ctx.stroke();ctx.restore();
+}
+function ell(cx,cy,rx,ry){
+  ctx.save();ctx.lineWidth=1.2*S;ctx.strokeStyle="#0b2a6b";
+  ctx.beginPath();ctx.ellipse(cx*S,cy*S,rx*S,ry*S,0,0,7);ctx.stroke();ctx.restore();
+}
+function mark(f,i,e){
+  const o=f.o[i];
+  if(f.m==="e"){ell(o[1][0],o[1][1],o[2],9.5);return}
+  if(f.s){const p=(V[f.s]===1?o[2]:o[1]);if(p)chk(p[0],p[1]);return}
+  const p=(e==="L"&&o[2])?o[2]:o[1];
+  f.m==="o"?circ(p[0],p[1],f.r||7):chk(p[0],p[1]);
+}
+
+function draw(){
+  cv.width=595*S;cv.height=842*S;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#0b2a6b";ctx.textBaseline="alphabetic";
+  const nn=v=>v==null?"":String(v).trim();
+
+  cur.f.forEach(f=>{
+    const t=f.t;
+    if(t==="t"&&nn(V[f.k]))fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y);
+    if(t==="ph"&&f.d){
+      fit(nn(V.tel1),30,9,"r",f.d[0][0],f.d[0][1]);
+      fit(nn(V.tel2),24,9,"l",f.d[1][0],f.d[1][1]);
+      fit(nn(V.tel3),24,9,"l",f.d[2][0],f.d[2][1]);
+    }
+    if(t==="tx"&&nn(V[f.k])&&(!f.cond||V[f.cond[0]]===f.cond[1]))fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y);
+    if(t==="nm"&&V.nm){chk(f.p[0],f.p[1],10);if(nn(V.nmText))fit(nn(V.nmText).slice(0,15),f.w,7.5,"l",f.x+2,f.y-1)}
+    if(t==="d"){["Y","M","D"].forEach((s,i)=>{const v=nn(V[f.k+s]);if(v)fit(v,30,f.fs,"r",f.xs[i],f.y)})}
+    if(t==="bd"){
+      const v=["bY","bM","bD"].map(k=>nn(V[k]));
+      f.xs.slice(0,3).forEach((x,i)=>v[i]&&fit(v[i],34,10,"r",x,f.y));
+      const a=calcAge(v[0],v[1],v[2]);if(a!=="")fit(a,16,10,"r",f.xs[3],f.y);
+    }
+    if(t==="c"&&V[f.k])chk(f.p[0],f.p[1],10);
+    if(t==="r"){
+      if(f.e)["R","L"].forEach(e=>{if(act(e)&&V[f.k+e]!=null)mark(f,V[f.k+e],e)});
+      else if(V[f.k]!=null)mark(f,V[f.k],"R");
+    }
+  });
+
+  // 備考
+  if(cur.note&&nn(V.free)){
+    const L=nn(V.free).split("\n").filter(Boolean);
+    L.slice(0,cur.note.n).forEach((t,i)=>fit(t,cur.note.w,cur.note.fs,"l",cur.note.x,cur.note.y+i*cur.note.lh));
+  }
+
+  // オージオグラム描画
+  if(cur.audio){
+    const A=cur.audio,fr=Object.keys(A.x).map(Number),py=d=>A.y0+d*A.k;
+    ["R","L"].forEach(e=>{
+      if(!act(e))return;
+      const pts=fr.filter(f=>nn(V["a"+e+f])!=="").map(f=>[A.x[f],py(+V["a"+e+f])]);
+      if(!pts.length)return;
+      ctx.save();
+      ctx.strokeStyle=e==="R"?"#d01818":"#1747c8";
+      ctx.lineWidth=.9*S;
+      ctx.beginPath();
+      pts.forEach((p,i)=>i?ctx.lineTo(p[0]*S,p[1]*S):ctx.moveTo(p[0]*S,p[1]*S));
+      ctx.stroke();
+      pts.forEach(p=>{
+        ctx.fillStyle="#fff";
+        if(e==="R"){ctx.beginPath();ctx.arc(p[0]*S,p[1]*S,3.4*S,0,7);ctx.fill();ctx.stroke()}
+        else{
+          const r=3.2*S,x=p[0]*S,y=p[1]*S;
+          ctx.beginPath();ctx.moveTo(x-r,y-r);ctx.lineTo(x+r,y+r);ctx.moveTo(x+r,y-r);ctx.lineTo(x-r,y+r);
+          ctx.lineWidth=1.3*S;ctx.stroke();ctx.lineWidth=.9*S;
+        }
+      });
+      ctx.restore();
+    });
+    ["R","L"].forEach(e=>{
+      if(!act(e))return;
+      const pts=fr.filter(f=>nn(V["b"+e+f])!=="").map(f=>[A.x[f],py(+V["b"+e+f])]);
+      if(!pts.length)return;
+      ctx.save();
+      ctx.strokeStyle=e==="R"?"#d01818":"#1747c8";
+      ctx.lineWidth=.8*S;
+      ctx.beginPath();
+      pts.forEach((p,i)=>i?ctx.lineTo(p[0]*S,p[1]*S):ctx.moveTo(p[0]*S,p[1]*S));
+      ctx.stroke();
+      ctx.lineWidth=1.2*S;
+      pts.forEach(p=>{
+        const x=p[0]*S,y=p[1]*S,r=3.4*S;
+        ctx.beginPath();
+        if(e==="R"){ctx.moveTo(x+r,y-r);ctx.lineTo(x-r*.4,y-r);ctx.lineTo(x-r*.4,y+r);ctx.lineTo(x+r,y+r)}
+        else{ctx.moveTo(x-r,y-r);ctx.lineTo(x+r*.4,y-r);ctx.lineTo(x+r*.4,y+r);ctx.lineTo(x-r,y+r)}
+        ctx.stroke();
+      });
+      ctx.restore();
+    });
+    if(nn(V.mdate)){ctx.fillStyle="#0b2a6b";fit(nn(V.mdate),42,7,"l",A.dx,A.dy)}
+  }
+}
+
+function validateOrder(){
+  const missing=[];
+  const labels={shop:"貴店名",staff:"ご担当者",cust:"お客様名",g:"グレード",pw:"パワー",shape:"器種",ch:"充電器"};
+  ["shop","staff","cust"].forEach(k=>{if(!String(V[k]||"").trim())missing.push(labels[k]||k)});
+  if(cur.audio){const hasAu=["R","L"].some(e=>act(e)&&Object.keys(cur.audio.x).some(f=>String(V["a"+e+f]??"").trim()!==""));if(!hasAu)missing.push("気導オージオグラム")}
+  if(cur.id==="smr"){if(V.g==null)missing.push("グレード");if(V.pw==null)missing.push("パワー")}
+  if(cur.id==="bel"){if(V.shape===1&&V.pw===0)return{ok:false,message:"カスタムDWCにLPはありません。パワーを選び直してください。"};if(V.shape==null)missing.push("器種");if(act("R")&&V.pwR==null&&act("L")&&V.pwL==null&&V.pw==null){/* power is ear */}}
+  if(V.nm){const n=String(V.nmText||"").trim();if(!n)missing.push("名入れ文字");else if(!namePattern.test(n))return{ok:false,message:"名入れはひらがな・カタカナ・アルファベットで入力してください。"}}
+  return missing.length?{ok:false,message:"必須項目を入力してください："+missing.join("、")}:{ok:true};
+}
+
+/* ===== 備品注文ページ連携（補聴器＋備品を1つのPDFで注文） ===== */
+const MID={smr:"insera_sr",bel:"beltone_custom"};
+let _idb=null;
+function idbOpen(){return _idb||(_idb=new Promise((res,rej)=>{try{const r=indexedDB.open("njh_order_v1",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>{_idb=null;rej(r.error)}}catch(e){_idb=null;rej(e)}}))}
+async function idbPut(k,v){const d=await idbOpen();return new Promise((res,rej)=>{const tr=d.transaction("kv","readwrite");tr.objectStore("kv").put(v,k);tr.oncomplete=()=>res();tr.onerror=()=>rej(tr.error)})}
+async function idbDel(k){const d=await idbOpen();return new Promise((res,rej)=>{const tr=d.transaction("kv","readwrite");tr.objectStore("kv").delete(k);tr.oncomplete=()=>res();tr.onerror=()=>rej(tr.error)})}
+async function makePdfBytes(){
+draw();
+const png=await new Promise(r=>cv.toBlob(r,"image/png"));
+const bin=new Uint8Array(await(await fetch(PDFS[cur.pdf])).arrayBuffer());
+const doc=await PDFLib.PDFDocument.load(bin);
+const pg=doc.getPage(0);
+const im=await doc.embedPng(new Uint8Array(await png.arrayBuffer()));
+const sz=pg.getSize();
+pg.drawImage(im,{x:0,y:0,width:sz.width,height:sz.height});
+return doc.save();
+}
+function pdfName(){const ymd=td.getFullYear()+("0"+(td.getMonth()+1)).slice(-2)+("0"+td.getDate()).slice(-2);return "注文書_"+cur.name.replace(/\s/g,"")+"_"+ymd+".pdf"}
+function haImage(q){
+const c=document.createElement("canvas");c.width=cv.width;c.height=cv.height;const x=c.getContext("2d");
+x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+if(bg&&bg.naturalWidth)x.drawImage(bg,0,0,c.width,c.height);
+x.drawImage(cv,0,0);
+return c.toDataURL("image/jpeg",q||0.6);
+}
+function writeHaDraft(){
+try{
+const mid=MID[cur.id]||cur.id;
+localStorage.setItem("njh_ha_draft_v1",JSON.stringify({formId:mid,formName:cur.name,ST:{},fields:{name:V.cust||"",kana:V.kana||"",age:V.age||""},gender:V.sex===0?"男":V.sex===1?"女":"",savedAt:Date.now()}));
+localStorage.setItem("njh_ha_current_form_v1",mid);
+}catch(e){}
+}
+let snapT=null,snapping=false;
+async function snapCustom(){
+if(snapping)return;
+writeHaDraft();
+if(!validateOrder().ok){try{await idbDel("ha_pdf")}catch(e){}bothState();return}
+if(!window.PDFLib){bothState();return}
+snapping=true;
+try{
+const out=await makePdfBytes();
+await idbPut("ha_pdf",{buf:out.buffer.slice(out.byteOffset,out.byteOffset+out.byteLength),img:haImage(0.6),name:pdfName(),formId:MID[cur.id]||cur.id,formName:cur.name,shop:V.shop||"",savedAt:Date.now()});
+}catch(e){}
+snapping=false;
+bothState();
+}
+function snapSoon(){clearTimeout(snapT);snapT=setTimeout(snapCustom,900);bothState();dbInfoUpdate()}
+function readPartsCart(){
+let cart=[];try{cart=JSON.parse(localStorage.getItem("njh_cart_v1")||"[]")||[]}catch(e){cart=[]}
+let bats={};try{bats=JSON.parse(localStorage.getItem("njh_bat_v3")||"{}")||{}}catch(e){bats={}}
+const lines=[];
+cart.forEach(c=>{
+if(!c||!(c.qty>0))return;
+let name=c.name||c.id;
+if(c.opts){const b=[];if(c.opts.metal)b.push("金具:"+c.opts.metal);if(c.opts.cord)b.push("ひも:"+c.opts.cord);if(b.length)name=(c.name||c.id)+"（"+b.join("／")+"）"}
+lines.push({name:name,qty:c.qty});
+});
+[["bat312","空気電池 312（茶色）（箱）"],["bat13","空気電池 13（橙色）（箱）"],["bat675","空気電池 675（青色）（箱）"],["bat10a","空気電池 10A（黄色）（箱）"]].forEach(function(kv){const q=+bats[kv[0]]||0;if(q>0)lines.push({name:kv[1],qty:q})});
+return lines;
+}
+function partsSheetImg(lines){
+const W=595,H=842,S=2,c=document.createElement("canvas");c.width=W*S;c.height=H*S;const x=c.getContext("2d");
+x.scale(S,S);x.fillStyle="#fff";x.fillRect(0,0,W,H);x.fillStyle="#111";x.strokeStyle="#333";
+const txt=(s,px,py,sz,al,b)=>{x.font=(b?"bold ":"")+(sz||11)+"px sans-serif";x.textAlign=al||"left";x.fillText(s,px,py)};
+txt("パーツ・備品 ご注文書",W/2,40,18,"center",true);
+txt("ニュージャパンヒヤリングエイド株式会社 御中",36,62,10,"left",true);
+const tel=[V.tel1,V.tel2,V.tel3].filter(Boolean).join("-");
+txt("貴店名: "+(V.shop||""),36,88,11);
+txt("ご担当: "+(V.staff||"")+"  TEL: "+tel,36,106,11);
+txt("ご注文日: "+(V.odY||"")+"/"+(V.odM||"")+"/"+(V.odD||""),36,124,11);
+let y=150;
+txt("No",40,y,10,"left",true);txt("品名",70,y,10,"left",true);txt("数量",520,y,10,"right",true);
+y+=8;x.beginPath();x.moveTo(36,y);x.lineTo(W-36,y);x.stroke();y+=16;
+lines.forEach((l,i)=>{if(y>780)y=780;txt(String(i+1),40,y,10);txt(String(l.name).slice(0,40),70,y,10);txt(String(l.qty),520,y,10,"right");y+=18});
+if(!lines.length)txt("（備品の注文はありません）",36,y,11);
+return c.toDataURL("image/jpeg",0.92);
+}
+async function imagePdf(pages){
+const enc=new TextEncoder(),parts=[],off=[];let len=0;
+const add=x=>{const u=typeof x==="string"?enc.encode(x):x;parts.push(u);len+=u.length};
+const imgs=[];
+for(const url of pages){
+const r=await fetch(url),buf=new Uint8Array(await r.arrayBuffer());
+const im=new Image();im.src=url;
+if(im.decode)await im.decode();else await new Promise((res,rej)=>{im.onload=res;im.onerror=rej});
+imgs.push({bytes:buf,w:im.naturalWidth||595,h:im.naturalHeight||842});
+}
+const n=imgs.length,total=2+3*n;
+add("%PDF-1.4\n");
+const ob=(no,body)=>{off[no]=len;add(no+" 0 obj\n");if(typeof body==="string")add(body);else body();add("\nendobj\n")};
+ob(1,"<</Type/Catalog/Pages 2 0 R>>");
+ob(2,"<</Type/Pages/Kids["+imgs.map((_,i)=>(3+3*i)+" 0 R").join(" ")+"]/Count "+n+">>");
+imgs.forEach((im,i)=>{const pg=3+3*i;ob(pg,"<</Type/Page/Parent 2 0 R/MediaBox[0 0 595.28 841.89]/Resources<</XObject<</Im0 "+(pg+1)+" 0 R>>>>/Contents "+(pg+2)+" 0 R>>");ob(pg+1,()=>{add("<</Type/XObject/Subtype/Image/Width "+im.w+"/Height "+im.h+"/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length "+im.bytes.length+">>\nstream\n");add(im.bytes);add("\nendstream")});const cn="q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";ob(pg+2,"<</Length "+cn.length+">>\nstream\n"+cn+"\nendstream")});
+const xo=len;add("xref\n0 "+(total+1)+"\n0000000000 65535 f \n");for(let i=1;i<=total;i++)add(String(off[i]).padStart(10,"0")+" 00000 n \n");add("trailer<</Size "+(total+1)+"/Root 1 0 R>>\nstartxref\n"+xo+"\n%%EOF");
+return new Blob(parts,{type:"application/pdf"});
+}
+function bothState(){
+const b=$("both"),h=$("bothHint");if(!b)return;
+const okF=validateOrder().ok,n=readPartsCart().length,ok=okF&&n>0;
+b.disabled=!ok;
+let m="";
+if(!okF&&!n)m="補聴器の必須項目と、備品の両方を入力すると押せます";
+else if(!okF)m="補聴器の注文書が未入力です（必須項目を入力してください）";
+else if(!n)m="備品が未入力です（「🔩 備品も注文」から追加してください）";
+else m="送信内容：補聴器 "+cur.name+" ＋ 備品 "+n+"品目（2ページPDF）";
+if(h){h.textContent=m;h.style.color=ok?"#2f855a":""}
+}
+$("both").onclick=async()=>{
+const m=$("msg");
+const chk=validateOrder();
+if(!chk.ok){m.textContent=chk.message;return}
+const lines=readPartsCart();
+if(!lines.length){m.textContent="備品が未入力です。「🔩 備品も注文」から追加してください。";return}
+m.textContent="作成中…";
+try{
+draw();
+const pages=[haImage(0.92),partsSheetImg(lines)];
+const combined=await imagePdf(pages);
+const name=pdfName().replace(/\.pdf$/,"")+"_備品_2ページ.pdf";
+const file=new File([combined],name,{type:"application/pdf"});
+const sub="【ご注文】補聴器＋備品 "+cur.name;
+const body=(V.shop||"")+"です。補聴器注文書と備品注文書を2ページPDFで送ります。";
+try{
+if(navigator.canShare&&navigator.canShare({files:[file]})){
+await navigator.share({files:[file],title:sub,text:body});
+m.textContent="共有しました："+name;return;
+}
+}catch(e){if(e&&e.name==="AbortError"){m.textContent="";return}}
+const a=el("a",{href:URL.createObjectURL(new Blob([combined],{type:"application/pdf"})),download:name});
+document.body.appendChild(a);a.click();a.remove();
+m.textContent="保存しました："+name+"（LINEやメールに添付して送ってください）";
+}catch(e){m.textContent="作成できませんでした："+(e.message||e)}
+};
+$("toParts").onclick=async()=>{
+save();
+try{await Promise.race([snapCustom(),new Promise(r=>setTimeout(r,2500))])}catch(e){}
+location.href="../../index.html#cart";
+};
+addEventListener("pageshow",()=>bothState());
+addEventListener("focus",()=>bothState());
+addEventListener("storage",()=>bothState());
+addEventListener("pagehide",()=>{try{snapCustom()}catch(e){}});
+
+/* ===== 顧客管理データベースへの保存（紐付け） ===== */
+let CID=null,OID=null,DB_CUST=null;
+try{const q2=new URLSearchParams(location.search);CID=q2.get("cid")?+q2.get("cid"):null;OID=q2.get("oid")?+q2.get("oid"):null}catch(e){}
+function loadDb(){try{return JSON.parse(localStorage.getItem("njhc")||"{}")}catch(e){return{}}}
+function findCust(db){
+const cs=(db&&db.cs)||[];
+if(CID){const c=cs.find(x=>x.id===CID);if(c)return{cust:c,how:"id"}}
+const nm=String(V.cust||"").trim();
+if(nm){const m=cs.filter(x=>String(x.name||"").trim()===nm);if(m.length===1)return{cust:m[0],how:"name"};if(m.length>1)return{cust:null,how:"dup"}}
+return{cust:null,how:"none"};
+}
+function dbRestore(){
+if(!OID)return;
+const db=loadDb();const f=findCust(db);
+if(!f.cust)return;
+const o=(f.cust.orders||[]).find(x=>x.id===OID);
+if(o&&o.data){Object.assign(V,o.data);DB_CUST=f.cust}
+}
+function dbInfoUpdate(){
+const e=$("dbInfo");if(!e)return;
+const db=loadDb();const f=findCust(db);
+if(f.cust){DB_CUST=f.cust;e.textContent="🗄 顧客管理と連携中："+(f.cust.name||"")+" 様（カルテNo."+(f.cust.no||"")+"）"+(OID?"／保存済みの注文を編集中です":"");e.style.color="#2f855a"}
+else if(f.how==="dup"){DB_CUST=null;e.textContent="🗄 同じ名前の顧客が複数いるため、自動で紐付けできません。顧客管理の顧客画面から注文書を開いてください。";e.style.color="#b45309"}
+else{DB_CUST=null;e.textContent="🗄 顧客管理と未連携です（顧客管理の顧客画面から注文書を開くと自動で紐付きます）";e.style.color="#b45309"}
+}
+function orderSummary(){
+const parts=[];
+if(cur.id==="smr"){const g=cur.f.find(x=>x.k==="g"),pw=cur.f.find(x=>x.k==="pw");if(g&&V.g!=null)parts.push("グレード"+g.o[V.g][0]);if(pw&&V.pw!=null)parts.push(pw.o[V.pw][0])}
+if(cur.id==="bel"){const sh=cur.f.find(x=>x.k==="shape");if(sh&&V.shape!=null)parts.push(sh.o[V.shape][0])}
+parts.push(EN[V.ears]||"");
+if(V.total)parts.push("合計 "+V.total+"円");
+return parts.filter(Boolean).join("／");
+}
+if($("dbSave"))$("dbSave").onclick=()=>{
+const m=$("msg");
+const chk=validateOrder();
+if(!chk.ok){m.textContent=chk.message;return}
+const db=loadDb();
+const f=findCust(db);
+if(!f.cust){m.textContent=f.how==="dup"?"同じ名前の顧客が複数います。顧客管理の顧客画面から注文書を開いて保存してください。":"顧客管理に該当の顧客が見つかりません。顧客管理に登録して、その顧客画面から注文書を開いてください。";return}
+const cust=f.cust;
+if(!Array.isArray(cust.orders))cust.orders=[];
+const rec={id:OID||Date.now(),date:(V.odY||"")+"/"+(V.odM||"")+"/"+(V.odD||""),formId:cur.id,mid:MID[cur.id]||cur.id,formName:cur.name,cust:V.cust||cust.name||"",summary:orderSummary(),total:V.total||"",data:JSON.parse(JSON.stringify(V)),savedAt:Date.now()};
+const ix=cust.orders.findIndex(x=>x.id===rec.id);
+if(ix>=0)cust.orders[ix]=rec;else cust.orders.push(rec);
+try{localStorage.setItem("njhc",JSON.stringify(db))}catch(e){m.textContent="保存できませんでした（端末の容量不足の可能性があります）";return}
+OID=rec.id;CID=cust.id;DB_CUST=cust;
+m.textContent="データベースに保存しました："+(cust.name||"")+" 様の注文履歴（"+rec.date+" "+rec.formName+"）";
+dbInfoUpdate();
+};
+
+if($("toCust"))$("toCust").onclick=()=>{
+const m=$("msg");
+const chk=validateOrder();
+if(!chk.ok){m.textContent=chk.message;return}
+const db=loadDb();
+const f=findCust(db);
+if(!f.cust){
+if(!confirm("顧客管理に紐付いていないため、注文内容は顧客管理に保存されません。\n入力中の内容だけ保存して、顧客管理へ移動しますか？"))return;
+try{localStorage.setItem("njh_custom_v",JSON.stringify(V))}catch(e){}
+location.href="../../customer.html";return;
+}
+const cust=f.cust;
+if(!Array.isArray(cust.orders))cust.orders=[];
+const rec={id:OID||Date.now(),date:(V.odY||"")+"/"+(V.odM||"")+"/"+(V.odD||""),formId:cur.id,mid:MID[cur.id]||cur.id,formName:cur.name,cust:V.cust||cust.name||"",summary:orderSummary(),total:V.total||"",data:JSON.parse(JSON.stringify(V)),savedAt:Date.now()};
+const ix=cust.orders.findIndex(x=>x.id===rec.id);
+if(ix>=0)cust.orders[ix]=rec;else cust.orders.push(rec);
+try{localStorage.setItem("njhc",JSON.stringify(db))}catch(e){m.textContent="保存できませんでした（端末の容量不足の可能性があります）";return}
+OID=rec.id;CID=cust.id;DB_CUST=cust;
+try{localStorage.setItem("njh_open_cust",JSON.stringify({id:cust.id,tab:"o"}))}catch(e){}
+location.href="../../customer.html";
+};
+$("go").onclick=async()=>{
+  const m=$("msg");
+  const check=validateOrder();
+  if(!check.ok){m.textContent=check.message;return}
+  m.textContent="作成中…";
+  try{
+    if(!window.PDFLib)throw new Error("PDF部品を読み込めませんでした。");
+    draw();
+    const png=await new Promise(r=>cv.toBlob(r,"image/png"));
+    const bin=new Uint8Array(await(await fetch(PDFS[cur.pdf])).arrayBuffer());
+    const doc=await PDFLib.PDFDocument.load(bin);
+    const pg=doc.getPage(0);
+    const im=await doc.embedPng(new Uint8Array(await png.arrayBuffer()));
+    const sz=pg.getSize();
+    pg.drawImage(im,{x:0,y:0,width:sz.width,height:sz.height});
+    const out=await doc.save();
+    const ymd=td.getFullYear()+("0"+(td.getMonth()+1)).slice(-2)+("0"+td.getDate()).slice(-2);
+    const name="注文書_"+cur.name.replace(/\s/g,"")+"_"+ymd+".pdf";
+    const a=el("a",{href:URL.createObjectURL(new Blob([out],{type:"application/pdf"})),download:name});
+    document.body.appendChild(a);a.click();a.remove();
+    m.textContent="保存しました："+name;
+  }catch(e){m.textContent="保存できませんでした："+(e.message||e)}
+};
+
+$("print").onclick=()=>{
+  const check=validateOrder();
+  if(!check.ok){$("msg").textContent=check.message;return}
+  draw();window.print();
+};
+
+// nav
+const nav=$("nav");
+FORMS.forEach((f,i)=>{
+  const b=el("button",{type:"button"});
+  b.innerHTML="<b>"+f.name+"</b><small>"+f.sub+"</small>";
+  b.onclick=()=>{cur=FORMS[i];nav.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+    bg.onload=()=>draw();
+    bg.src=cur.img||"";
+    build();
+  };
+  if(i===0)b.classList.add("on");
+  nav.appendChild(b);
+});
+
+// load first / URL form
+try{
+  const q=new URLSearchParams(location.search);
+  const fid=q.get("form");
+  if(fid){const i=FORMS.findIndex(f=>f.id===fid);if(i>=0){cur=FORMS[i];document.querySelectorAll("#nav button").forEach((b,j)=>b.classList.toggle("on",j===i))}}
+}catch(e){}
+bg.onload=()=>draw();
+if(cur.img)bg.src=cur.img;
+dbRestore();
+build();
+dbInfoUpdate();
+</script>
+</body>
+</html>

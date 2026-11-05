@@ -1,6 +1,6 @@
 {
-  "name": "補聴器専門店 業務アシスト",
-  "short_name": "NJH業務アシスト",
+  "name": "NJHチャットボット注文書",
+  "short_name": "NJHチャットボット注文書",
   "description": "Beltone / Unitron 書類検索・注文書作成・パーツ注文（NJH連携）",
   "start_url": "./index.html",
   "display": "standalone",
