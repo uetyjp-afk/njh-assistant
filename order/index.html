@@ -305,10 +305,11 @@ function upd(){if(!FM)return;syncAu();$('dxv').textContent=$('dx').value;$('dyv'
 function ymd(v){if(!v)return['','',''];const p=v.split('-');return[p[0],String(+p[1]),String(+p[2])]}
 function draw(){if(!ready||!FM)return;const W=cv.width,Hh=cv.height,ox=+$('dx').value,oy=+$('dy').value,S=S2;cx.clearRect(0,0,W,Hh);cx.drawImage(IMG,0,0);cx.fillStyle=cx.strokeStyle='#111';cx.textBaseline='middle';
  const T=(t,x,y,sz=16,al='left')=>{if(!t)return;cx.font=`${sz*S}px ${FONT}`;cx.textAlign=al;cx.fillText(t,(x+ox)*S,(y+oy)*S)};
+ const TEL=(v,x,y,sz)=>{const d=String(v||'').replace(/[^0-9]/g,'');if(!d)return;let s=d;if(d.length===10)s=d.slice(0,3)+'（'+d.slice(3,6)+'）'+d.slice(6);else if(d.length===11)s=d.slice(0,3)+'（'+d.slice(3,7)+'）'+d.slice(7);cx.font=`${sz*S}px ${FONT}`;cx.textAlign='center';let xp=x;for(const ch of s){const wd=/[0-9]/.test(ch)?sz*0.62:sz*1.02;cx.fillText(ch,(xp+wd/2+ox)*S,(y+oy)*S);xp+=wd}cx.textAlign='left'};
  const CK=(x,y,h=10)=>{cx.lineWidth=3.2*S;cx.lineCap=cx.lineJoin='round';cx.beginPath();cx.moveTo((x+ox-h*.7)*S,(y+oy)*S);cx.lineTo((x+ox-h*.15)*S,(y+oy+h*.6)*S);cx.lineTo((x+ox+h*.85)*S,(y+oy-h*.9)*S);cx.stroke()};
  const h=FM.h,od=ymd($('orderDate').value),wd=ymd($('wishDate').value);
  for(let i=0;i<3;i++){T(od[i],h.od[i][0],h.od[i][1],17,'right');if(h.wd)T(wd[i],h.wd[i][0],h.wd[i][1],17,'right')}
- T($('shop').value,...h.shop,18);T($('contact').value,...h.contact,18);T($('tel').value,...h.tel,17);if(!FM.mold)T($('fax').value,...h.fax,17);T($('kana').value,...h.kana,10);T($('name').value,...h.name,19);if(!FM.mold)T($('age').value,...h.age,19,'right');
+ T($('shop').value,...h.shop,18);T($('contact').value,...h.contact,18);TEL($('tel').value,...h.tel,17);if(!FM.mold)TEL($('fax').value,...h.fax,17);T($('kana').value,...h.kana,10);T($('name').value,...h.name,19);if(!FM.mold)T($('age').value,...h.age,19,'right');
  if(ST.gender&&!FM.mold){const p=h[ST.gender];cx.lineWidth=2*S;cx.beginPath();cx.ellipse((p[0]+ox)*S,(p[1]+oy)*S,15*S,15*S,0,0,7);cx.stroke()}
  FM.groups.forEach(g=>{if(!showG(g))return;if(g.suppressMark)return;
   if(g.t==='ear')['R','L'].forEach(e=>{const v=ST[g.id+e],i=g.items.find(x=>x.k===v);if(i){const series=ST.series;const bx=i.bySeries&&series in i.bySeries?i.bySeries[series]:undefined;const p=bx&&bx[e]?bx[e]:(bx===null?null:i[e]);if(p)CK(...p)}});

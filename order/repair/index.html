@@ -167,6 +167,7 @@ function RA(t,x,y,s){T(t,x,y,s,'right')}
 function CK(cx,cy,s=15){ctx.font='bold '+s+'px sans-serif';ctx.fillStyle='#111';ctx.textAlign='center';ctx.fillText('✓',cx,cy+s*0.36)}
 function EL(cx,cy,rx,ry){ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke()}
 function dp(ds){if(!ds)return null;const[a,b,c]=String(ds).split('-').map(Number);return a?{y:a,m:b,d:c}:null}
+function fmtTel(v){const d=String(v||'').replace(/[^0-9]/g,'');if(!d)return'';if(d.length===10)return d.slice(0,3)+'（'+d.slice(3,6)+'）'+d.slice(6);if(d.length===11)return d.slice(0,3)+'（'+d.slice(3,7)+'）'+d.slice(7);return d}
 function dRA(ds,ends,y,s=11){const p=dp(ds);if(!p)return;RA(p.y,ends[0],y,s);RA(p.m,ends[1],y,s);RA(p.d,ends[2],y,s)}
 function wrap(text,x,y,maxW,s,lh,maxLines){if(!text)return;ctx.font=s+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';ctx.fillStyle='#111';ctx.textAlign='left';let line='',n=0;
  for(const ch of String(text)){if(ctx.measureText(line+ch).width>maxW&&line){ctx.fillText(line,x,y+n*lh);n++;line=ch;if(n>=maxLines)return}else line+=ch}
@@ -177,8 +178,8 @@ function draw(){const f=FORMS[V.form];if(cv.width!==f.W){cv.width=f.W;cv.height=
  K=f.W/f.pw;ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(bg,0,0,cv.width,cv.height);ctx.setTransform(K,0,0,K,0,0);
  const c=V.common;
  if(V.form==='repair'){const v=V.repair;
-  T(c.shop,116,372,12);T(c.staff,428,372,12);dRA(v.dateR,[196,253,311],393.5);T(c.tel,428,397.5,11.5);
-  T(c.cust,116,423,12.5);T(c.fax,428,423,11.5);T(c.model,116,446.5,11.5);
+  T(c.shop,116,372,12);T(c.staff,428,372,12);dRA(v.dateR,[196,253,311],393.5);T(fmtTel(c.tel),428,397.5,11.5);
+  T(c.cust,116,423,12.5);T(fmtTel(c.fax),428,423,11.5);T(c.model,116,446.5,11.5);
   if(V.ear!=='L')T(c.noR,350,446.5,11);if(V.ear!=='R')T(c.noL,472,446.5,11);
   dRA(c.buy,[196,253,311],472.5);
   for(const id of v.kinds){const p=KIND_CK[id];if(p)CK(p[0],p[1],p[2])}
@@ -195,7 +196,7 @@ function draw(){const f=FORMS[V.form];if(cv.width!==f.W){cv.width=f.W;cv.height=
   wrap(v.memo,140,758,395,10.5,15.5,2);
   const ap=dp(v.arrival);if(ap){RA(ap.m,176,811.5,11);RA(ap.d,233,811.5,11)}
  }else{const v=V.loss;
-  dRA(v.date,[196,253,296],123.5);T(c.shop,118,156.5,12);T(c.tel,400,156.5,11.5);T(c.staff,118,182.5,12);
+  dRA(v.date,[196,253,296],123.5);T(c.shop,118,156.5,12);T(fmtTel(c.tel),400,156.5,11.5);T(c.staff,118,182.5,12);
   T(c.cust,118,216.5,12.5);dRA(c.buy,[454,495,527],216.5);T(c.model,48,270.5,12);
   if(V.ear==='R')EL(377,264.5,25,11.5);if(V.ear==='L')EL(428,264.5,25,11.5);if(V.ear==='B')EL(492,264.5,24,11.5);
   T(v.serial,48,319.5,11.5);

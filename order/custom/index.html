@@ -101,6 +101,7 @@ input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,tra
 <script>
 const PDFS=["./insera.pdf","./beltone.pdf"];
 const EAR={B:"両耳",R:"右耳のみ",L:"左耳のみ"},EN={B:"両耳",R:"右耳",L:"左耳"};
+function splitTel(t){if(t.length===10)return[t.slice(0,3),t.slice(3,6),t.slice(6)];if(t.length>10)return[t.slice(0,t.length-8),t.slice(-8,-4),t.slice(-4)];return null}
 const FONT='"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP","Noto Sans JP",sans-serif';
 const S=3,td=new Date();
 const V={ears:"B",odY:td.getFullYear(),odM:td.getMonth()+1,odD:td.getDate()};
@@ -114,12 +115,12 @@ try{
   if(q.get("sex")==="男")V.sex=0; if(q.get("sex")==="女")V.sex=1;
   if(q.get("age"))V.age=q.get("age");
   if(q.get("au")){try{const au=JSON.parse(q.get("au"));["R","L"].forEach(e=>{const ac=(au.ac||{})[e]||{},bc=(au.bc||{})[e]||{};Object.keys(ac).forEach(f=>{if(ac[f]!==''&&ac[f]!=null)V["a"+e+f]=ac[f]});Object.keys(bc).forEach(f=>{if(bc[f]!==''&&bc[f]!=null)V["b"+e+f]=bc[f]})});if(au.date&&!V.mdate){const d=String(au.date).split("-");if(d.length===3)V.mdate=(+d[1])+"/"+(+d[2])}}catch(e){}}
-  if(q.get("tel")){const t=q.get("tel").replace(/[^0-9]/g,"");if(t.length>=10){V.tel1=t.slice(0,t.length-8);V.tel2=t.slice(-8,-4);V.tel3=t.slice(-4)}}
+  if(q.get("tel")){const t=q.get("tel").replace(/[^0-9]/g,"");const sp=splitTel(t);if(sp){V.tel1=sp[0];V.tel2=sp[1];V.tel3=sp[2]}}
   if(q.get("form")==="bel"){/* select bel later */}
 }catch(e){}
 try{
   const s=JSON.parse(localStorage.getItem("njhc")||"{}");
-  if(s.shop){if(!V.shop&&s.shop.name)V.shop=s.shop.name;if(!V.staff&&s.shop.staff)V.staff=s.shop.staff;if(!V.tel1&&s.shop.tel){const t=String(s.shop.tel).replace(/[^0-9]/g,"");if(t.length>=10){V.tel1=t.slice(0,t.length-8);V.tel2=t.slice(-8,-4);V.tel3=t.slice(-4)}}}
+  if(s.shop){if(!V.shop&&s.shop.name)V.shop=s.shop.name;if(!V.staff&&s.shop.staff)V.staff=s.shop.staff;if(!V.tel1&&s.shop.tel){const t=String(s.shop.tel).replace(/[^0-9]/g,"");const sp=splitTel(t);if(sp){V.tel1=sp[0];V.tel2=sp[1];V.tel3=sp[2]}}}
 }catch(e){}
 
 /* ========== 様式定義（PDF座標・A4 595x842pt） ========== */
