@@ -1970,8 +1970,8 @@ img,canvas,table{max-width:100%}
             let price = (p && p.price != null) ? p.price : (c.price || 0);
             if (c.opts && p) {
                 const parts = [];
-                if (c.opts.metal) parts.push('金具:' + c.opts.metal);
                 if (c.opts.cord) parts.push('ひも:' + c.opts.cord);
+                if (c.opts.metal) parts.push('金具:' + c.opts.metal);
                 if (parts.length) name = p.name + '（' + parts.join('／') + '）';
             }
             return { key: c.id + (c.opts ? '-' + JSON.stringify(c.opts) : ''), name, note, brand, price, qty: c.qty };
@@ -2009,8 +2009,8 @@ img,canvas,table{max-width:100%}
             if (hasOpts) {
                 item.opts = { metal: opts.metal || '', cord: opts.cord || '' };
                 const bits = [];
-                if (opts.metal) bits.push('金具:' + opts.metal);
                 if (opts.cord) bits.push('ひも:' + opts.cord);
+                if (opts.metal) bits.push('金具:' + opts.metal);
                 if (bits.length) item.name = (p ? p.name : id) + '（' + bits.join('／') + '）';
             }
             cart.push(item);
@@ -2714,8 +2714,8 @@ function cFname() {
             const cordEl = card && card.querySelector('.opt-cord');
             const metal = metalEl ? metalEl.value : '';
             const cord = cordEl ? cordEl.value : '';
-            if (part.options.metal && !metal) { cToast('金具の色を選んでください'); return; }
             if (part.options.cord && !cord) { cToast('ひもの色を選んでください'); return; }
+            if (part.options.metal && !metal) { cToast('金具の色を選んでください'); return; }
             opts = { metal, cord };
         }
         addToCart(id, opts);
@@ -2736,8 +2736,8 @@ function cFname() {
             let opts = '';
             if (p.options) {
                 opts = '<div class="cart-part-opts">';
-                if (p.options.metal) opts += `<select class="cp-metal" data-id="${p.id}"><option value="">金具</option>${p.options.metal.map(v=>`<option value="${v}">${v}</option>`).join('')}</select>`;
                 if (p.options.cord) opts += `<select class="cp-cord" data-id="${p.id}"><option value="">ひも</option>${p.options.cord.map(v=>`<option value="${v}">${v}</option>`).join('')}</select>`;
+                if (p.options.metal) opts += `<select class="cp-metal" data-id="${p.id}"><option value="">金具</option>${p.options.metal.map(v=>`<option value="${v}">${v}</option>`).join('')}</select>`;
                 opts += '</div>';
             }
             return `<div class="cart-part-row" data-id="${p.id}">
@@ -2771,8 +2771,8 @@ function cFname() {
                 const row = b.closest('.cart-part-row');
                 const metal = row && row.querySelector('.cp-metal') ? row.querySelector('.cp-metal').value : '';
                 const cord = row && row.querySelector('.cp-cord') ? row.querySelector('.cp-cord').value : '';
-                if (part.options.metal && !metal) { cToast('金具の色を選んでください'); return; }
                 if (part.options.cord && !cord) { cToast('ひもの色を選んでください'); return; }
+                if (part.options.metal && !metal) { cToast('金具の色を選んでください'); return; }
                 opts = { metal, cord };
             }
             addToCart(id, opts);
