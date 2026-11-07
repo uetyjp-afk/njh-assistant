@@ -72,6 +72,18 @@ header h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .note{overflow-wrap:anywhere}
   .pv canvas{width:100%!important}
 }
+
+@media screen and (max-width:600px){
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:80;background:#fff;border-top:1px solid #d9dee6;box-shadow:0 -4px 16px rgba(15,40,80,.15);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .bar .btn{min-width:0;padding:10px 4px;font-size:13px}
+  #bPrint,#bMail{grid-column:span 2}
+  #bSharePdf{grid-column:span 2}
+  #bBoth{grid-column:1/-1;margin-top:0;width:auto}
+  #bBoth:disabled{display:none}
+  #bothHint{grid-column:1/-1;margin:0}
+  #bothHint:empty{display:none}
+  main{padding-bottom:240px}
+}
 </style></head><body>
 <header><button class="back" id="back" hidden>‹ 戻る</button><h1 id="ttl">NJH 補聴器 ご注文書 作成</h1><nav class="hnav"><button type="button" id="topNew" style="border:0;color:#fff;background:#7c3aed;border-radius:14px;padding:6px 9px;font-size:12px;white-space:nowrap">＋ 新規注文</button><a href="../index.html" style="background:#ff7a00;color:#fff;font-weight:700;padding:7px 14px;border-radius:999px;text-decoration:none;display:inline-block;font-size:14px;white-space:nowrap">🏠 ホームに戻る</a><a href="../index.html#cart" id="navParts">🔩 パーツ注文</a><a href="../index.html#repair">🔧 修理可否</a></nav></header>
 <main>

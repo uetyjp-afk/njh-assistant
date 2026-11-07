@@ -66,6 +66,22 @@ input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,tra
 .hint{font-size:12px;color:var(--mu)}
 .back{display:inline-block;margin:0 0 8px;color:var(--ac);text-decoration:none;font-size:13px}
 @media print{header,nav,#ui,.bar,#msg,.back{display:none!important}body{background:#fff}main{display:block;padding:0}#pv{border:0;padding:0;position:static}.cv{max-width:none;border:0;width:100%}}
+
+.bar #msg{flex:0 0 100%;margin:0 0 2px}
+@media screen and (max-width:860px){
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:80;background:var(--card);border-top:1px solid var(--ln);box-shadow:0 -4px 16px rgba(15,40,30,.16);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:0}
+  .bar .go,.bar .sub{padding:11px 4px;font-size:14px;min-width:0}
+  .bar #go{grid-column:span 2}
+  .bar #print{grid-column:span 2}
+  .bar #toParts{grid-column:1/-1}
+  .bar #both{grid-column:1/-1;margin-top:0!important}
+  .bar #both:disabled{display:none}
+  .bar #bothHint{grid-column:1/-1;margin:0!important}
+  .bar #bothHint:empty{display:none}
+  .bar #msg{grid-column:1/-1;min-height:0}
+  .bar #msg:empty{display:none}
+  main{padding-bottom:250px}
+}
 </style>
 </head>
 <body>
@@ -787,6 +803,11 @@ if(cur.img)bg.src=cur.img;
 dbRestore();
 build();
 dbInfoUpdate();
+</script>
+
+<script>
+// 「補聴器と備品」ボタンとヒントをボタン列（.bar）の中へまとめ、下部固定バーに含める
+(function(){var bar=document.querySelector('.bar');if(!bar)return;['both','bothHint'].forEach(function(id){var el=document.getElementById(id);if(el)bar.appendChild(el)});var msg=document.getElementById('msg');if(msg)bar.insertBefore(msg,bar.firstChild);})();
 </script>
 </body>
 </html>
