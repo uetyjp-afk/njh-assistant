@@ -2933,6 +2933,7 @@ function cFname() {
     const RP_ALIAS = { moxi:'モクシー', stride:'ストライド', true:'トゥルー', promise:'プロミス', first:'ファースト', legend:'レジェンド', one:'ワン', link:'リンク', identity:'アイデンティティ', access:'アクセス', change:'チェンジ', origin:'オリジン', concert:'コンサート', turn:'ターン', force:'フォース', boost:'ブースト', element:'エレメント', next:'ネクスト', quantum:'クォンタム', shine:'シャイン', latitude:'ラティテュード', fuse:'ヒューズ', fit:'フィット', dura:'デュラ', kiss:'キス', touch:'タッチ', reach:'リーチ', mira:'ミラ', alka:'アルカ', aura:'オーリア', mark:'マーク', prime:'プライム', passport:'パスポート', breeze:'ブリーズ', moda:'モーダ', optima:'オプティマ' };
     const rpNorm = s => String(s || '').normalize('NFKC').toLowerCase()
         .replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60))
+        .replace(/[ァィゥェォャュョッヮヵヶ]/g, c => 'アイウエオヤユヨツワカケ'['ァィゥェォャュョッヮヵヶ'.indexOf(c)])
         .replace(/[\s　、，,・()（）\-‐]/g, '');
     const rpState = e => {
         const [y, m] = e.split('.').map(Number), d = new Date();
