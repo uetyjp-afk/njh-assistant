@@ -164,6 +164,7 @@ const cv=$('#cv'),ctx=cv.getContext('2d'),bg=new Image();
 let K=2.778;
 function T(t,x,y,s=12,align='left'){if(t==null||t==='')return;ctx.font=s+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';ctx.fillStyle='#111';ctx.textAlign=align;ctx.fillText(String(t),x,y)}
 function RA(t,x,y,s){T(t,x,y,s,'right')}
+function TFit(t,x,y,s,maxW){if(t==null||t==='')return;ctx.font=s+'px "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif';const w=ctx.measureText(String(t)).width;if(w>maxW)s=Math.max(7,s*maxW/w);T(t,x,y,s)}
 function CK(cx,cy,s=15){ctx.font='bold '+s+'px sans-serif';ctx.fillStyle='#111';ctx.textAlign='center';ctx.fillText('✓',cx,cy+s*0.36)}
 function EL(cx,cy,rx,ry){ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke()}
 function dp(ds){if(!ds)return null;const[a,b,c]=String(ds).split('-').map(Number);return a?{y:a,m:b,d:c}:null}
@@ -179,7 +180,7 @@ function draw(){const f=FORMS[V.form];if(cv.width!==f.W){cv.width=f.W;cv.height=
  const c=V.common;
  if(V.form==='repair'){const v=V.repair;
   T(c.shop,116,372,12);T(c.staff,428,372,12);dRA(v.dateR,[196,253,311],393.5);T(fmtTel(c.tel),428,397.5,11.5);
-  T(c.cust,116,423,12.5);T(fmtTel(c.fax),428,423,11.5);T(c.model,116,446.5,11.5);
+  T(c.cust,116,423,12.5);T(fmtTel(c.fax),428,423,11.5);TFit(c.model,116,446.5,11.5,226);
   if(V.ear!=='L')T(c.noR,350,446.5,11);if(V.ear!=='R')T(c.noL,472,446.5,11);
   dRA(c.buy,[196,253,311],472.5);
   for(const id of v.kinds){const p=KIND_CK[id];if(p)CK(p[0],p[1],p[2])}
@@ -197,7 +198,7 @@ function draw(){const f=FORMS[V.form];if(cv.width!==f.W){cv.width=f.W;cv.height=
   const ap=dp(v.arrival);if(ap){RA(ap.m,176,811.5,11);RA(ap.d,233,811.5,11)}
  }else{const v=V.loss;
   dRA(v.date,[196,253,296],123.5);T(c.shop,118,156.5,12);T(fmtTel(c.tel),400,156.5,11.5);T(c.staff,118,182.5,12);
-  T(c.cust,118,216.5,12.5);dRA(c.buy,[454,495,527],216.5);T(c.model,48,270.5,12);
+  T(c.cust,118,216.5,12.5);dRA(c.buy,[454,495,527],216.5);TFit(c.model,48,270.5,12,300);
   if(V.ear==='R')EL(377,264.5,25,11.5);if(V.ear==='L')EL(428,264.5,25,11.5);if(V.ear==='B')EL(492,264.5,24,11.5);
   T(v.serial,48,319.5,11.5);
   if(v.amount==='all')EL(400,288.5,19,11);if(v.amount==='half')EL(469,288.5,19,11);
