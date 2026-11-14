@@ -103,6 +103,7 @@ input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,tra
 
     <div class="bar">
       <button class="go" id="go">PDFで保存</button>
+<button class="sub" id="xlsx" type="button" style="background:#217346;color:#fff">Excelで出力（オーダーシート）</button>
 <button class="sub" id="print" type="button">印刷</button>
 <button class="sub" id="toParts" type="button">🔩 備品も注文</button>
 
@@ -778,6 +779,205 @@ $("print").onclick=()=>{
   draw();window.print();
 };
 
+/* ===== Excel転記ヘルパー ===== */
+function _crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++){let x=(c^u8[i])&0xFF;for(let k=0;k<8;k++)x=x&1?0xEDB88320^(x>>>1):x>>>1;c=(c>>>8)^x}return (c^0xFFFFFFFF)>>>0}
+async function _xzRead(buf){
+  const u8=new Uint8Array(buf),dv=new DataView(buf);let eo=-1;
+  for(let i=u8.length-22;i>=0;i--){if(dv.getUint32(i,true)===0x06054b50){eo=i;break}}
+  if(eo<0)throw new Error('zip形式ではありません');
+  const n=dv.getUint16(eo+10,true);let off=dv.getUint32(eo+16,true);const files=new Map();
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(off,true)!==0x02014b50)break;
+    const method=dv.getUint16(off+10,true),csize=dv.getUint32(off+20,true);
+    const nl=dv.getUint16(off+28,true),el=dv.getUint16(off+30,true),cl=dv.getUint16(off+32,true),lho=dv.getUint32(off+42,true);
+    const name=new TextDecoder().decode(u8.subarray(off+46,off+46+nl));
+    const lnl=dv.getUint16(lho+26,true),lel=dv.getUint16(lho+28,true),start=lho+30+lnl+lel;
+    const comp=u8.subarray(start,start+csize);
+    if(method===0)files.set(name,comp.slice());
+    else if(method===8){const ds=new DecompressionStream('deflate-raw');const wr=ds.writable.getWriter();wr.write(comp);wr.close();files.set(name,new Uint8Array(await new Response(ds.readable).arrayBuffer()))}
+    else files.set(name,comp.slice());
+    off+=46+nl+el+cl;
+  }
+  return files;
+}
+function _xzWrite(files){
+  const enc=new TextEncoder(),chunks=[],central=[];let off=0;
+  for(const [name,data] of files){
+    const nb=enc.encode(name),crc=_crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nb.length,true);
+    chunks.push(new Uint8Array(lh.buffer),nb,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,nb.length,true);ch.setUint32(42,off,true);
+    central.push(new Uint8Array(ch.buffer),nb);
+    off+=30+nb.length+data.length;
+  }
+  const cs=central.reduce((a,c)=>a+c.length,0),eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true);eo.setUint16(8,files.size,true);eo.setUint16(10,files.size,true);eo.setUint32(12,cs,true);eo.setUint32(16,off,true);
+  chunks.push(...central,new Uint8Array(eo.buffer));
+  return new Blob(chunks,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function _xzSheetPath(files,name){
+  const dec=new TextDecoder();
+  const wb=dec.decode(files.get('xl/workbook.xml')),rels=dec.decode(files.get('xl/_rels/workbook.xml.rels'));
+  const rmap={};for(const m of rels.matchAll(/<Relationship[^>]*>/g)){const id=(m[0].match(/Id="([^"]+)"/)||[])[1],tg=(m[0].match(/Target="([^"]+)"/)||[])[1];if(id)rmap[id]=tg}
+  let target=null,first=null;
+  for(const m of wb.matchAll(/<sheet[^>]*>/g)){
+    const nm=(m[0].match(/name="([^"]+)"/)||[])[1],rid=(m[0].match(/r:id="([^"]+)"/)||[])[1];
+    if(rid&&!first)first=rmap[rid];
+    if(nm===name&&rid)target=rmap[rid];
+  }
+  target=target||first;
+  if(target&&!target.startsWith('xl/'))target='xl/'+target.replace(/^\//,'');
+  return target;
+}
+function _xzShared(files){
+  const b=files.get('xl/sharedStrings.xml');if(!b)return[];
+  const s=new TextDecoder().decode(b);
+  const un=t=>t.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  return s.split('<si>').slice(1).map(chunk=>{
+    const body=chunk.split('</si>')[0].replace(/<rPh>[\s\S]*?<\/rPh>/g,'');
+    let t='';for(const m of body.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g))t+=un(m[1]);
+    return t;
+  });
+}
+function _xzCellText(xml,shared,ref){
+  const m=xml.match(new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)'));
+  if(!m||m[0].endsWith('/>'))return'';
+  const tag=m[0].slice(0,m[0].indexOf('>')+1),inner=m[0];
+  const vm=inner.match(/<v>([\s\S]*?)<\/v>/);
+  if(/t="s"/.test(tag)&&vm)return shared[+vm[1]]||'';
+  if(/t="inlineStr"/.test(tag)){const im=inner.match(/<t[^>]*>([\s\S]*?)<\/t>/);return im?im[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&'):''}
+  return vm?vm[1]:'';
+}
+function _xzSet(xml,vals){
+  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const colN=r=>{const mm=r.match(/^[A-Z]+/)[0];let n=0;for(const ch of mm)n=n*26+(ch.charCodeAt(0)-64);return n};
+  let s=xml;
+  for(const ref of Object.keys(vals)){
+    const val=vals[ref];if(val==null||val==='')continue;
+    const num=typeof val==='number';
+    const body=num?('<v>'+val+'</v>'):('<is><t xml:space="preserve">'+esc(val)+'</t></is>');
+    const re=new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)');
+    const m=s.match(re);
+    if(m){
+      const sm=m[0].match(/s="(\d+)"/);
+      const rep='<c r="'+ref+'"'+(sm?' s="'+sm[1]+'"':'')+(num?'':' t="inlineStr"')+'>'+body+'</c>';
+      s=s.replace(re,()=>rep);
+    }else{
+      const rowNum=ref.match(/\d+/)[0];
+      const cell='<c r="'+ref+'"'+(num?'':' t="inlineStr"')+'>'+body+'</c>';
+      const rowRe=new RegExp('<row r="'+rowNum+'"[^>]*>');
+      const rm=s.match(rowRe);if(!rm)continue;
+      const start=rm.index+rm[0].length,end=s.indexOf('</row>',start),rowXml=s.slice(start,end);
+      let at=end;for(const cm of rowXml.matchAll(/<c r="([A-Z]+)\d+"/g)){if(colN(cm[1])>colN(ref)){at=start+cm.index;break}}
+      s=s.slice(0,at)+cell+s.slice(at);
+    }
+  }
+  return s;
+}
+function _xzEdit(xml,shared,ref,fn){const cur=_xzCellText(xml,shared,ref);const nv=fn(cur);return nv===cur?xml:_xzSet(xml,{[ref]:nv})}
+function _xzMark(text,word){if(!word)return text;const i=text.indexOf(word);if(i<0||(i>0&&text[i-1]==='○'))return text;return text.slice(0,i)+'○'+text.slice(i)}
+function _xzDate(y,m,d){if(!y||!m||!d)return null;return Math.round((Date.UTC(+y,+m-1,+d)-Date.UTC(1899,11,30))/86400000)}
+async function _xzDeliver(blob,fname){
+  const file=new File([blob],fname,{type:blob.type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fname});return}catch(e){if(e&&e.name==='AbortError')return}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+/* ===== Excel転記（オーダーシート） ===== */
+async function makeOrderXlsx(){
+  try{
+    const buf=await (await fetch('../202604_ordersheet.xlsx')).arrayBuffer();
+    const files=await _xzRead(buf);
+    const sp=_xzSheetPath(files,'Sheet1');
+    const shared=_xzShared(files);
+    let xml=new TextDecoder().decode(files.get(sp));
+    const F=id=>cur.f.find(x=>x.k===id);
+    const lab=(f,idx)=>idx==null?null:(f.o[idx]||[])[0];
+    const comb=f=>{
+      const r=act('R')?lab(f,V[f.k+'R']):null,l=act('L')?lab(f,V[f.k+'L']):null;
+      if(r&&l)return r===l?r:('右：'+r+'／左：'+l);
+      return r||l||null;
+    };
+    const vals={};
+    const od=_xzDate(V.odY,V.odM,V.odD);if(od!=null)vals.D9=od;
+    if(V.shop)vals.D10=V.shop;
+    if(V.staff)vals.D11=V.staff;
+    const tel=[V.tel1,V.tel2,V.tel3].filter(x=>x).join('-');if(tel)vals.G11=tel;
+    if(V.kana)vals.D12=V.kana;
+    if(V.cust)vals.D13=V.cust;
+    if(V.sex===0)vals.J13='男';else if(V.sex===1)vals.J13='女';
+    if(V.bY&&V.bM&&V.bD){vals.D14='西暦';vals.F14=V.bY+'年'+V.bM+'月'+V.bD+'日'}
+    vals.D16=V.ears==='R'?'右耳':V.ears==='L'?'左耳':'両耳';
+    if(cur.id==='smr'){
+      vals.T21='Insera Smile';
+      const g=lab(F('g'),V.g);if(g)vals.W21=g;
+      vals.T23='S-R（カナル）';
+      const fp=comb(F('fp'));if(fp)vals.V24=fp;
+      const sc=comb(F('sc'));if(sc)vals.V25=sc;
+    }else{
+      vals.H21='Serene';
+      const sh=lab(F('shape'),V.shape);if(sh)vals.H23=sh;
+      const col=comb(F('col'));if(col)vals.J24=col;
+    }
+    if(V.total){const t=parseInt(String(V.total).replace(/[^0-9]/g,''),10);if(t>0)vals.K35=t}
+    if(V.mdate)vals.AI8=V.mdate;
+    if(V.wish)vals.W45=V.wish;
+    if(V.exp!=null){vals.F40=V.exp===0?('使用中（'+(V.ears==='R'?'右':V.ears==='L'?'左':'両耳')+'）'):V.exp===1?'経験なし':'過去経験あり'}
+    const COLS={'125':'AC','250':'AD','500':'AE','1000':'AG','2000':'AH','3000':'AI','4000':'AJ','8000':'AL'};
+    ['R','L'].forEach((e,ei)=>{
+      for(const fq of Object.keys(COLS)){
+        const av=V['a'+e+fq],bv=V['b'+e+fq];
+        if(av!==''&&av!=null&&!isNaN(+av))vals[COLS[fq]+(ei===0?10:11)]=+av;
+        if(bv!==''&&bv!=null&&!isNaN(+bv))vals[COLS[fq]+(ei===0?13:14)]=+bv;
+      }
+    });
+    xml=_xzSet(xml,vals);
+    const mark=(ref,word)=>{if(word)xml=_xzEdit(xml,shared,ref,t=>_xzMark(t,word))};
+    const vtF=F('vt'),vr=act('R')?lab(vtF,V.vtR):null,vl=act('L')?lab(vtF,V.vtL):null;
+    const vmap=s=>s==='段付き'?'段付':s;
+    if(vr&&vl&&vr!==vl)xml=_xzEdit(xml,shared,'J29',()=>'③ベント　右：'+vr+'／左：'+vl);
+    else mark('J29',vmap(vr||vl));
+    if(V.tg===0)xml=_xzEdit(xml,shared,'J32',t=>{const s=t.replace(/1本テグス\(希望\s*mm\)/,'○1本テグス(希望 '+(V.tg1||'')+' mm)');return s===t?_xzMark(t,'1本テグス'):s});
+    else if(V.tg===1)xml=_xzEdit(xml,shared,'J32',t=>{const s=t.replace(/輪テグス\s*\(希望\s*mm\)/,'○輪テグス(希望 '+(V.tg2||'')+' mm)');return s===t?_xzMark(t,'輪テグス'):s});
+    else if(V.tg===2)mark('J32','テグス無');
+    if(V.nm&&V.nmText)xml=_xzEdit(xml,shared,'S32',t=>t.replace(/＿+/,V.nmText));
+    if(cur.id==='smr'){
+      mark('N27',lab(F('pw'),V.pw));
+      mark('T26',V.ch===0?'不要':'要');
+      mark('S29',V.ea===0?'ワックスフィルター':V.ea===1?'HF4':V.ea===2?'他（':null);
+      if(V.dx)mark('S37','DXリモコン');
+      if(V.tv)mark('S37','TVコネクター');
+      if(V.pm)mark('S37','パートナーマイク');
+      if(V.q1)mark('M45','製作・仕様・形状について');
+      if(V.q2)mark('M45','納期・価格について');
+      const shmap={'シェル全体ゆるめ':'シェル全体緩め','延長チューブ加工':'延長チューブ'};
+      ['sh1','sh2','sh3','sh4','sh5','sh6','sh7','sh8','sh9','sh10','sh11'].forEach(k=>{
+        if(!V[k])return;const f=F(k);if(f)mark('N39',shmap[f.l]||f.l);
+      });
+      if(V.sh12)xml=_xzEdit(xml,shared,'N39',t=>t+'\nその他（シェル指定）');
+    }else{
+      const pw=lab(F('pw'),V.pw);
+      if(pw==='LP')xml=_xzEdit(xml,shared,'C28',t=>t+'　○LP');
+      else mark('C28',pw);
+      if(V.ch===0)mark('H26','要');else if(V.ch===1)mark('H26','不要');
+      if(V.ea===0)mark('S29','ワックスフィルター');
+      else if(V.ea===1)mark('S29','HF4');
+      else if(V.ea===2)xml=_xzEdit(xml,shared,'S29',t=>t.replace('他（','○他（HF-3）'));
+      if(V.tvs)mark('F37','TVストリーマー');
+      if(V.mm)mark('F37','マルチマイク');
+      if(V.mini)mark('F37','ミニリモコン');
+      if(V.tvl)mark('F37','TVリンク2');
+      if(V.vlp)xml=_xzEdit(xml,shared,'F37',t=>t+'\n○ボイスリンク・プロ');
+      if(V.vlm)xml=_xzEdit(xml,shared,'F37',t=>t+'\n○ボイスリンク・マイクロ');
+    }
+    if(V.free)xml=_xzEdit(xml,shared,'N39',t=>t+'\n備考：'+V.free);
+    files.set(sp,new TextEncoder().encode(xml));
+    await _xzDeliver(_xzWrite(files),'オーダーシート_'+(V.cust||'お客様')+'.xlsx');
+  }catch(e){alert('Excelの作成に失敗しました：'+(e&&e.message||e))}
+}
+{const b=document.getElementById('xlsx');if(b)b.onclick=()=>{save();makeOrderXlsx()}}
+
 // nav
 const nav=$("nav");
 FORMS.forEach((f,i)=>{
@@ -796,7 +996,7 @@ FORMS.forEach((f,i)=>{
 try{
   const q=new URLSearchParams(location.search);
   const fid=q.get("form");
-  if(fid){const i=FORMS.findIndex(f=>f.id===fid);if(i>=0){cur=FORMS[i];document.querySelectorAll("#nav button").forEach((b,j)=>b.classList.toggle("on",j===i))}}
+  if(fid){const i=FORMS.findIndex(f=>f.id===fid);if(i>=0){cur=FORMS[i];document.querySelectorAll("#nav button").forEach((b,j)=>b.classList.toggle("on",j===i));nav.style.display="none"}}
 }catch(e){}
 bg.onload=()=>draw();
 if(cur.img)bg.src=cur.img;

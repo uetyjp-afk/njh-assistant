@@ -111,7 +111,7 @@ header h1{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 <label class="f">縦 <span id="dyv">0</span></label><input type="range" id="dy" min="-8" max="8" step="0.5" value="0"></details></fieldset>
 </div>
 <div class="pv">
-<div class="bar"><button class="btn" id="bPrint">印刷 / FAX</button><button class="btn" id="bMail">メールで送る</button><button class="btn" id="bSharePdf" style="background:#06c755">PDFを送る（LINEなど）</button><button class="btn s" id="bPdf">PDF保存</button><button class="btn s" id="bPng">画像保存</button><button class="btn s" id="bClr">入力をクリア</button><button class="btn" id="bNew" style="background:#7c3aed">新規で注文</button><button class="btn" id="bBoth" disabled style="background:#2b6cb0;width:100%;margin-top:8px">補聴器と備品の注文を送る（PDFまとめて）</button><p id="bothHint" style="width:100%;margin:6px 0 0;font-size:12px;color:#b45309;line-height:1.5"></p></div>
+<div class="bar"><button class="btn" id="bPrint">印刷 / FAX</button><button class="btn" id="bMail">メールで送る</button><button class="btn" id="bSharePdf" style="background:#06c755">PDFを送る（LINEなど）</button><button class="btn s" id="bPdf">PDF保存</button><button class="btn s" id="bXlsx" style="background:#217346;color:#fff" hidden>Excelで出力（イヤモールド）</button><button class="btn s" id="bPng">画像保存</button><button class="btn s" id="bClr">入力をクリア</button><button class="btn" id="bNew" style="background:#7c3aed">新規で注文</button><button class="btn" id="bBoth" disabled style="background:#2b6cb0;width:100%;margin-top:8px">補聴器と備品の注文を送る（PDFまとめて）</button><p id="bothHint" style="width:100%;margin:6px 0 0;font-size:12px;color:#b45309;line-height:1.5"></p></div>
 <div id="warns"></div>
 <canvas id="cv" aria-label="ご注文書プレビュー"></canvas>
 <p class="note">FAX：印刷画面でFAX対応のプリンタ／複合機を選択。<br>
@@ -702,6 +702,146 @@ $('bClr').onclick=()=>{if(!confirm('お客様情報と選択内容をクリア�
 addEventListener('pageshow',()=>{bothState();syncShop()});addEventListener('focus',()=>{bothState();syncShop()});addEventListener('storage',()=>{bothState();syncShop()});document.addEventListener('visibilitychange',()=>{if(!document.hidden){bothState();syncShop()}});
 window.__d={FORMS,get ST(){return ST},set ST(v){ST=v},upd,refresh,cv};
 route();
+/* ===== Excel転記ヘルパー ===== */
+function _crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++){let x=(c^u8[i])&0xFF;for(let k=0;k<8;k++)x=x&1?0xEDB88320^(x>>>1):x>>>1;c=(c>>>8)^x}return (c^0xFFFFFFFF)>>>0}
+async function _xzRead(buf){
+  const u8=new Uint8Array(buf),dv=new DataView(buf);let eo=-1;
+  for(let i=u8.length-22;i>=0;i--){if(dv.getUint32(i,true)===0x06054b50){eo=i;break}}
+  if(eo<0)throw new Error('zip形式ではありません');
+  const n=dv.getUint16(eo+10,true);let off=dv.getUint32(eo+16,true);const files=new Map();
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(off,true)!==0x02014b50)break;
+    const method=dv.getUint16(off+10,true),csize=dv.getUint32(off+20,true);
+    const nl=dv.getUint16(off+28,true),el=dv.getUint16(off+30,true),cl=dv.getUint16(off+32,true),lho=dv.getUint32(off+42,true);
+    const name=new TextDecoder().decode(u8.subarray(off+46,off+46+nl));
+    const lnl=dv.getUint16(lho+26,true),lel=dv.getUint16(lho+28,true),start=lho+30+lnl+lel;
+    const comp=u8.subarray(start,start+csize);
+    if(method===0)files.set(name,comp.slice());
+    else if(method===8){const ds=new DecompressionStream('deflate-raw');const wr=ds.writable.getWriter();wr.write(comp);wr.close();files.set(name,new Uint8Array(await new Response(ds.readable).arrayBuffer()))}
+    else files.set(name,comp.slice());
+    off+=46+nl+el+cl;
+  }
+  return files;
+}
+function _xzWrite(files){
+  const enc=new TextEncoder(),chunks=[],central=[];let off=0;
+  for(const [name,data] of files){
+    const nb=enc.encode(name),crc=_crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nb.length,true);
+    chunks.push(new Uint8Array(lh.buffer),nb,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,nb.length,true);ch.setUint32(42,off,true);
+    central.push(new Uint8Array(ch.buffer),nb);
+    off+=30+nb.length+data.length;
+  }
+  const cs=central.reduce((a,c)=>a+c.length,0),eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true);eo.setUint16(8,files.size,true);eo.setUint16(10,files.size,true);eo.setUint32(12,cs,true);eo.setUint32(16,off,true);
+  chunks.push(...central,new Uint8Array(eo.buffer));
+  return new Blob(chunks,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+function _xzSheetPath(files,name){
+  const dec=new TextDecoder();
+  const wb=dec.decode(files.get('xl/workbook.xml')),rels=dec.decode(files.get('xl/_rels/workbook.xml.rels'));
+  const rmap={};for(const m of rels.matchAll(/<Relationship[^>]*>/g)){const id=(m[0].match(/Id="([^"]+)"/)||[])[1],tg=(m[0].match(/Target="([^"]+)"/)||[])[1];if(id)rmap[id]=tg}
+  let target=null,first=null;
+  for(const m of wb.matchAll(/<sheet[^>]*>/g)){
+    const nm=(m[0].match(/name="([^"]+)"/)||[])[1],rid=(m[0].match(/r:id="([^"]+)"/)||[])[1];
+    if(rid&&!first)first=rmap[rid];
+    if(nm===name&&rid)target=rmap[rid];
+  }
+  target=target||first;
+  if(target&&!target.startsWith('xl/'))target='xl/'+target.replace(/^\//,'');
+  return target;
+}
+function _xzShared(files){
+  const b=files.get('xl/sharedStrings.xml');if(!b)return[];
+  const s=new TextDecoder().decode(b);
+  const un=t=>t.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  return s.split('<si>').slice(1).map(chunk=>{
+    const body=chunk.split('</si>')[0].replace(/<rPh>[\s\S]*?<\/rPh>/g,'');
+    let t='';for(const m of body.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g))t+=un(m[1]);
+    return t;
+  });
+}
+function _xzCellText(xml,shared,ref){
+  const m=xml.match(new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)'));
+  if(!m||m[0].endsWith('/>'))return'';
+  const tag=m[0].slice(0,m[0].indexOf('>')+1),inner=m[0];
+  const vm=inner.match(/<v>([\s\S]*?)<\/v>/);
+  if(/t="s"/.test(tag)&&vm)return shared[+vm[1]]||'';
+  if(/t="inlineStr"/.test(tag)){const im=inner.match(/<t[^>]*>([\s\S]*?)<\/t>/);return im?im[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&'):''}
+  return vm?vm[1]:'';
+}
+function _xzSet(xml,vals){
+  const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const colN=r=>{const mm=r.match(/^[A-Z]+/)[0];let n=0;for(const ch of mm)n=n*26+(ch.charCodeAt(0)-64);return n};
+  let s=xml;
+  for(const ref of Object.keys(vals)){
+    const val=vals[ref];if(val==null||val==='')continue;
+    const num=typeof val==='number';
+    const body=num?('<v>'+val+'</v>'):('<is><t xml:space="preserve">'+esc(val)+'</t></is>');
+    const re=new RegExp('<c r="'+ref+'"[^>]*?(?:/>|>[\\s\\S]*?</c>)');
+    const m=s.match(re);
+    if(m){
+      const sm=m[0].match(/s="(\d+)"/);
+      const rep='<c r="'+ref+'"'+(sm?' s="'+sm[1]+'"':'')+(num?'':' t="inlineStr"')+'>'+body+'</c>';
+      s=s.replace(re,()=>rep);
+    }else{
+      const rowNum=ref.match(/\d+/)[0];
+      const cell='<c r="'+ref+'"'+(num?'':' t="inlineStr"')+'>'+body+'</c>';
+      const rowRe=new RegExp('<row r="'+rowNum+'"[^>]*>');
+      const rm=s.match(rowRe);if(!rm)continue;
+      const start=rm.index+rm[0].length,end=s.indexOf('</row>',start),rowXml=s.slice(start,end);
+      let at=end;for(const cm of rowXml.matchAll(/<c r="([A-Z]+)\d+"/g)){if(colN(cm[1])>colN(ref)){at=start+cm.index;break}}
+      s=s.slice(0,at)+cell+s.slice(at);
+    }
+  }
+  return s;
+}
+function _xzEdit(xml,shared,ref,fn){const cur=_xzCellText(xml,shared,ref);const nv=fn(cur);return nv===cur?xml:_xzSet(xml,{[ref]:nv})}
+function _xzMark(text,word){if(!word)return text;const i=text.indexOf(word);if(i<0||(i>0&&text[i-1]==='○'))return text;return text.slice(0,i)+'○'+text.slice(i)}
+function _xzDate(y,m,d){if(!y||!m||!d)return null;return Math.round((Date.UTC(+y,+m-1,+d)-Date.UTC(1899,11,30))/86400000)}
+async function _xzDeliver(blob,fname){
+  const file=new File([blob],fname,{type:blob.type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:fname});return}catch(e){if(e&&e.name==='AbortError')return}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+/* ===== Excel転記（イヤモールド注文書） ===== */
+async function makeMoldXlsx(){
+  try{
+    const buf=await (await fetch('./202610_earmold_ordersheet.xlsx')).arrayBuffer();
+    const files=await _xzRead(buf);
+    const sp=_xzSheetPath(files,'Table 1');
+    let xml=new TextDecoder().decode(files.get(sp));
+    const vals={};
+    const S=ST,ear=S.earsel||'B';
+    const odStr=$('orderDate').value;let od=null;
+    if(odStr){const p=odStr.split('-');if(p.length===3)od=_xzDate(+p[0],+p[1],+p[2])}
+    const kubunLab={new:'新規',re:'再作（３ケ月以内）',repair:'修理'}[S.kubun]||'';
+    const matLab={hard:'ハード',soft:'ソフト'}[S.mat]||'';
+    const typeLab={std:'スタンダード',shell:'シェル（ソフト不可）',semi:'セミスタンダード',skel:'スケルトン（ソフト不可）',canal:'カナル',cic:'CIC（ディープイヤーモールド・ソフト不可）'}[S.type]||'';
+    let ventLab='';
+    if(S.vent==='none')ventLab='なし';
+    else if(S.vent==='ari')ventLab={large:'ラージ（2.0ｍｍ）',small:'スモール（1.2ｍｍ）',v10:'1.0ｍｍ',incase:'インケース（0.8ｍｍ）',pressure:'プレッシャー（0.6ｍｍ）',auto:'おまかせ'}[S.vsize]||'あり';
+    const put=(ref,v)=>{if(v!=null&&v!=='')vals[ref]=v};
+    [['I3','U3',od],['B4','N4',$('kana').value],['B5','N5',$('name').value],['B6','N6',kubunLab],['B8','N8',$('shop').value],['J9','V9',$('contact').value],['C10','O10',$('tel').value],['B13','N13',matLab],['B14','N14',typeLab],['B16','N16',ventLab],['B21','N21',$('note').value]].forEach(([a,b,v])=>{put(a,v);put(b,v)});
+    put('C11',S.modelR);put('O11',S.modelR);put('F12',S.kosuR);put('R12',S.kosuR);
+    put('H11',S.modelL);put('T11',S.modelL);put('K12',S.kosuL);put('W12',S.kosuL);
+    const FR=['250','500','1000','2000','4000'],LC=['C','D','E','F','G'],RC=['O','P','Q','R','S'];
+    ['R','L'].forEach((e,ei)=>{
+      const au=(S.au||{})[e]||{};const row=ei===0?18:19;
+      FR.forEach((f,i)=>{const v=au[f];if(v!==''&&v!=null&&!isNaN(+v)){vals[LC[i]+row]=+v;vals[RC[i]+row]=+v}});
+    });
+    xml=_xzSet(xml,vals);
+    files.set(sp,new TextEncoder().encode(xml));
+    await _xzDeliver(_xzWrite(files),'イヤモールド注文書_'+(($('name').value)||'お客様')+'.xlsx');
+  }catch(e){alert('Excelの作成に失敗しました：'+(e&&e.message||e))}
+}
+function xlsxBtnUpd(){const b=document.getElementById('bXlsx');if(b)b.hidden=!(typeof FM!=='undefined'&&FM&&FM.id==='ear_mold')}
+document.addEventListener('click',()=>setTimeout(xlsxBtnUpd,0),true);
+{const b=document.getElementById('bXlsx');if(b)b.onclick=()=>{if(FM&&FM.id==='ear_mold')makeMoldXlsx()};xlsxBtnUpd()}
+
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script><button id="toTop" type="button" aria-label="一番上に戻る" style="display:none;position:fixed;right:14px;bottom:96px;z-index:90;width:56px;height:56px;border-radius:50%;background:#0a4630;color:#fff;border:2px solid #fff;font-size:25px;font-weight:700;box-shadow:0 6px 16px rgba(0,0,0,.35);cursor:pointer;padding:0">↑</button>
 <script>
