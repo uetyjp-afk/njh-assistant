@@ -90,7 +90,7 @@ input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,tra
   <div class="brand">
     <div>
       <h1>オーダーメイド注文書</h1>
-      <p>Insera Smile R / Beltone 充電式　オージオグラム対応</p>
+      <p>Insera Smile R / Beltone 充電式 / オーダーシート（オーダーメイド全般）　オージオグラム対応</p>
     </div>
   </div>
   <p>原本PDFに位置を合わせて入力内容を転記します。店名・担当者・電話番号は端末内に保存します。商品コードは記載しません。</p>
@@ -116,7 +116,7 @@ input:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--ac) 35%,tra
 </main>
 <script src="./pdf-lib.min.js"></script>
 <script>
-const PDFS=["./insera.pdf","./beltone.pdf"];
+const PDFS=["./insera.pdf","./beltone.pdf","./ordersheet.pdf"];
 const EAR={B:"両耳",R:"右耳のみ",L:"左耳のみ"},EN={B:"両耳",R:"右耳",L:"左耳"};
 function splitTel(t){if(t.length===10)return[t.slice(0,3),t.slice(3,6),t.slice(6)];if(t.length>10)return[t.slice(0,t.length-8),t.slice(-8,-4),t.slice(-4)];return null}
 const FONT='"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans CJK JP","Noto Sans JP",sans-serif';
@@ -142,6 +142,152 @@ try{
 }catch(e){}
 
 /* ========== 様式定義（PDF座標・A4 595x842pt） ========== */
+
+/* ===== オーダーシート用 器種マスター（202604オーダーシートの隠しマスターと同一） ===== */
+const _BK2='チャコール（納期が＋2日かかります）',_BKB='ベージュ（標準）',_KK2='ブラック（納期が＋2日かかります）',_BRB='ブラウン（標準）';
+function _grid(s,gs,pairs){const r=[];gs.forEach(g=>pairs.forEach(p=>r.push([s,g,p[0],p[1]])));return r}
+const MASTER={
+ bel:{
+  bat:{rows:[].concat(
+    _grid('Serene',['17','9','6','4'],[['カナルDW',_BKB],['カナルDW',_BK2],['CIC',_BKB],['CIC',_BK2]]),
+    _grid('Achieve',['17','9','6','6ライト','4','4ライト'],[['CIC',_BKB],['CIC',_BK2]]),
+    _grid('Amaze',['17','9','6'],[['カスタムDW','ベージュ'],['カナルDW-13','ベージュ'],['カナルDW','ベージュ'],['CIC','ベージュ']]),
+    _grid('Rely',['4','3','2'],[['カスタムDW','ベージュ'],['カナルDW-13','ベージュ'],['カナルDW','ベージュ'],['CIC','ベージュ']])
+  ),shells:['ベージュ（標準）','レッド','ブルー','ライトブルー','ピンク','ブラック','チャコール（Amaze・Relyは選択不可）','ホワイト']},
+  rec:{rows:[].concat(
+    _grid('Serene',['17','9','6','4'],[['カスタムDWC',null],['カナルDWC',null]]),
+    _grid('Achieve',['17','9','6','6ライト','4','4ライト'],[['カスタムDWC',null],['カナルDWC',null]])
+  ),shells:['ベージュ','チャコール']}
+ },
+ uni:{
+  bat:{rows:[].concat(
+    ['9','7','5','3','1'].reduce((a,g)=>a.concat([[ 'Insera Smile',g,'IIC',g==='9'?'ブラック':_KK2],['Insera Smile',g,'CIC',_BRB],['Insera Smile',g,'CIC',_KK2]]),[]),
+    _grid('Insera Blu',['9','7','5','3','1'],[['カナルDW',_BKB],['カナルDW',_KK2],['CIC-312','ベージュ'],['CIC',_BKB],['CIC',_KK2]]),
+    _grid('DX Insera',['9','7','5','3'],[['カナルDW','ベージュ'],['CIC-312','ベージュ'],['CIC','ブラウン']])
+  ),shells:['ベージュ（標準）','ホワイト','レッド','ピンク','チャコール','ブラック','ブルー','ライトブルー']},
+  rec:{rows:_grid('Insera Smile',['9','7','5','3','1'],[['S-R（カナル）',_BKB],['S-R（カナル）','ブラック']]),
+   shells:['ベージュ（標準）','レッド','ブルー','ライトブルー','ピンク','ブラック','チャコール','ホワイト']}
+ }
+};
+function casTable(){const M=MASTER[cur.os.maker];return V.cell===1?M.rec:M.bat}
+function casOpts(level){
+  let r=casTable().rows;
+  if(level>0)r=r.filter(x=>x[0]===V.casS);
+  if(level>1)r=r.filter(x=>x[1]===V.casG);
+  if(level>2)r=r.filter(x=>x[2]===V.casT);
+  const seen=[],out=[];
+  r.forEach(x=>{const v=x[level];if(v!=null&&!seen.includes(v)){seen.push(v);out.push(v)}});
+  return out;
+}
+function renderCas(u){
+  const groups=[["casS","シリーズ（必須）",0],["casG","グレード",1],["casT","形状",2],["casF","フェイスプレート",3]];
+  groups.forEach(([k,lab,lv])=>{
+    const opts=casOpts(lv);
+    if(lv>0&&!opts.length)return;
+    const w=el("div",{className:"ch"});
+    opts.forEach(name=>{
+      const b=el("button",{type:"button"},name);
+      if(V[k]===name)b.className="on";
+      b.onclick=()=>{V[k]=V[k]===name?undefined:name;
+        const order=["casS","casG","casT","casF"];
+        for(let i=lv+1;i<4;i++){const kk=order[i];if(V[kk]!=null&&!casOpts(i).includes(V[kk]))delete V[kk]}
+        build()};
+      w.appendChild(b);
+    });
+    u.appendChild(row(lab,w));
+  });
+  const w2=el("div",{className:"ch"});
+  casTable().shells.forEach(name=>{
+    const b=el("button",{type:"button"},name);
+    if(V.casC===name)b.className="on";
+    b.onclick=()=>{V.casC=V.casC===name?undefined:name;build()};
+    w2.appendChild(b);
+  });
+  u.appendChild(row("シェルカラー",w2));
+}
+function osModelStr(){return [V.casS,V.casG,V.casT].filter(Boolean).join(" ")}
+function makeOsFields(mk){
+  const bel=mk==='bel';
+  const F=[
+    {t:"h",l:"基本情報"},
+    {t:"d",k:"od",l:"ご注文日",one:1,x:100,y:104,fs:10},
+    {t:"t",k:"shop",l:"貴店名",x:100,y:126,w:148,fs:10,a:"l"},
+    {t:"t",k:"staff",l:"ご担当者",x:100,y:153,w:38,fs:9,a:"l"},
+    {t:"ph",k:"tel",l:"電話番号",d:[[200,153],[208,153],[232,153]]},
+    {t:"t",k:"kana",l:"ふりがな",x:100,y:171,w:130,fs:8,a:"l"},
+    {t:"t",k:"cust",l:"お客様名",x:100,y:189,w:150,fs:11,a:"l"},
+    {t:"r",k:"sex",l:"性別",txt:1,x:247,y:180,o:[["男"],["女"]]},
+    {t:"bd",k:"bd",l:"生年月日",xs:[176,195,214,244],y:215},
+    {t:"h",l:"器種（シリーズ → グレード → 形状 → 色）"},
+    {t:"r",k:"cell",l:"電池式 / 充電式",o:[["電池式"],["充電式"]]},
+    {t:"cas",k:"cas",l:"器種選択"},
+    {t:"h",l:"パワー・充電器"},
+    bel?{t:"r",k:"pw2",l:"パワー",o:[["MP",[118,417]],["HP",[165,417]],["UP",[211,417]],["LP",null]]}
+       :{t:"r",k:"pw2",l:"パワー",o:[["M",[362,417]],["P",[391,417]],["SP(HP)",[417,417]],["UP",[461,417]]]},
+    bel?{t:"r",k:"chg",l:"充電器",cond:["cell",1],o:[["要",[210,392]],["不要",[251,392]]]}
+       :{t:"r",k:"chg",l:"充電器",cond:["cell",1],o:[["要",[467,392]],["不要",[508,392]]]},
+    {t:"h",l:"装備品"},
+    {t:"r",k:"mb",l:"メモリーボタン",o:[["有",[71,441]],["無",[119,441]]]},
+    {t:"r",k:"vol",l:"ボリューム",o:[["有",[71,473]],["無",[130,473]],["2段ボリューム",[140,473]]]},
+    {t:"r",k:"vt",l:"ベント",o:[["有",[273,440]],["無",[319,440]]]},
+    {t:"r",k:"vtp",l:"ベント形状（ベント有のとき）",cond:["vt",0],o:[["段付き",[233,450]],["おまかせ",[292,450]]]},
+    {t:"r",k:"tgk",l:"テグス",o:[["輪テグス",[260,463]],["1本テグス",[260,473]],["テグス無",[260,483]]]},
+    {t:"tx",k:"tg2",l:"輪テグスの長さ（mm）",cond:["tgk",0],x:316,y:463,w:26,fs:8.5,a:"c"},
+    {t:"tx",k:"tg1",l:"1本テグスの長さ（mm）",cond:["tgk",1],x:316,y:473,w:26,fs:8.5,a:"c"},
+    {t:"r",k:"wax",l:"ワックスガード",o:[["ワックスフィルター",[401,440]],["HF4",[489,440]],["他",[401,450]]]},
+    {t:"tx",k:"waxT",l:"ワックスガード（他の内容）",cond:["wax",2],x:470,y:450,w:55,fs:8.5,a:"l"},
+    {t:"nm",k:"nm",l:"名入れ",p:[401,466],x:406,y:473,w:125,fs:9},
+    {t:"h",l:"シェル・仕上げ指定"},
+    {t:"c",k:"sh1",l:"できるだけ小さく",p:[304,549]},
+    {t:"c",k:"sh3",l:"シェル全体きつめ",p:[369,549]},
+    {t:"c",k:"sh5",l:"シェル先端長め",p:[434,549]},
+    {t:"c",k:"sh7",l:"シェル先端細く",p:[499,549]},
+    {t:"c",k:"sh2",l:"出し入れ重視",p:[304,557]},
+    {t:"c",k:"sh4",l:"シェル全体緩め",p:[369,557]},
+    {t:"c",k:"sh6",l:"シェル先端短め",p:[434,557]},
+    {t:"c",k:"sh11",l:"ハーフサイズ希望",p:[499,557]},
+    {t:"c",k:"sh9",l:"延長チューブ",p:[304,565]},
+    {t:"c",k:"sh13",l:"B・ドア爪髙",p:[369,565]},
+    {t:"c",k:"sh8",l:"UVコート",p:[434,565]},
+    {t:"c",k:"sh10",l:"ベル加工",p:[499,565]},
+    {t:"c",k:"sh12",l:"その他（シェル指定）"},
+    {t:"h",l:"ワイヤレス機器（同時注文・別売）"}
+  ];
+  if(bel){F.push(
+    {t:"c",k:"tvs",l:"TVストリーマー+",p:[144,518]},
+    {t:"c",k:"mm",l:"マルチマイク+",p:[238,518]},
+    {t:"c",k:"mini",l:"ミニリモコン",p:[315,518]},
+    {t:"c",k:"tvl",l:"TVリンク2",p:[144,529]}
+  )}else{F.push(
+    {t:"c",k:"tv",l:"TVコネクター",p:[405,518]},
+    {t:"c",k:"pm",l:"パートナーマイク",p:[471,518]},
+    {t:"c",k:"dx",l:"DXリモコン",p:[405,529]}
+  )}
+  F.push(
+    {t:"t",k:"total",l:"合計金額(円)",x:556,y:500,w:300,fs:11,a:"r"},
+    {t:"h",l:"お客様プロフィール"},
+    {t:"r",k:"exp",l:"補聴器のご経験",o:[["使用中",[140,564]],["経験なし",[195,564]],["過去経験あり",[234,564]]]},
+    {t:"r",k:"expEar",l:"使用中の耳",cond:["exp",0],o:[["右",[168,560],"c",5],["左",[180,560],"c",5],["両耳",[188,560],"c",7]]},
+    {t:"tx",k:"yrs",l:"装用年数（年）",x:101,y:574,w:14,fs:9,a:"r"},
+    {t:"r",k:"utype",l:"装用タイプ",o:[["耳あな",[156,574]],["耳かけ",[174,574]],["ポケット",[193,574]],["他",[224,574]]]},
+    {t:"t",k:"mk",l:"メーカー名（ご経験）",x:102,y:585,w:160,fs:9,a:"l"},
+    {t:"t",k:"prevR",l:"器種名（右）",x:112,y:596,w:68,fs:8.5,a:"l"},
+    {t:"t",k:"serR",l:"シリアルNo.（右）",x:196,y:596,w:60,fs:8.5,a:"l"},
+    {t:"t",k:"prevL",l:"器種名（左）",x:112,y:606,w:68,fs:8.5,a:"l"},
+    {t:"t",k:"serL",l:"シリアルNo.（左）",x:196,y:606,w:60,fs:8.5,a:"l"},
+    {t:"h",l:"試聴・相談"},
+    {t:"r",k:"dome",l:"試聴器種（ドーム）",o:[["オープン",[168,619]],["クローズ",[196,619]],["チューリップ",[175,627]]]},
+    {t:"r",k:"plug",l:"試聴器種（耳栓）",o:[["S",[238,622],"c",5],["M",[249,622],"c",5],["L",[260,622],"c",5]]},
+    {t:"r",k:"komori",l:"こもり感",o:[["有",[127,634],"c",5.5],["無",[139,634],"c",5.5]]},
+    {t:"r",k:"hibiki",l:"ひびき感",o:[["有",[238,634],"c",5.5],["無",[249,634],"c",5.5]]},
+    {t:"c",k:"q1",l:"電話相談（製作・仕様・形状）",p:[318,622]},
+    {t:"c",k:"q2",l:"電話相談（納期・価格）",p:[418,622]},
+    {t:"t",k:"earner",l:"耳型採取者",x:344,y:638,w:40,fs:9,a:"c"},
+    {t:"tx",k:"wish",l:"ご希望納期（例 11/20）",wishBox:1,x:533,y:618,fs:9}
+  );
+  return F;
+}
+
 const FORMS=[
 {
   id:"smr",
@@ -247,7 +393,34 @@ const FORMS=[
     {t:"h",l:"⑦ お客様プロフィール"},
     {t:"r",k:"exp",l:"補聴器のご経験",m:"e",o:[["使用中（右・左・両耳）",[134.8,667.5],57],["経験なし",[216.7,667.5],19],["過去経験あり",[268.4,667.5],27]]}
   ]
+},
+{
+  id:"uos",
+  name:"Unitron オーダーシート",
+  sub:"オーダーメイド全般（電池式・充電式）",
+  pdf:2,
+  img:"../img/custom/ordersheet-1.png",
+  os:{maker:"uni"},
+  note:{x:283,y:582,w:272,lh:13,fs:8.5,n:2},
+  audio:{x:{"125":307.3,"250":324.3,"500":341.4,"1000":377.8,"2000":397.3,"4000":436.7,"8000":476.2},y0:117.9,k:0.9623,dx:503,dy:146},
+  osEar:{R:[108,240,8],L:[131.5,240,8],B:[152.5,240,9.5]},
+  casCells:{bat:{s:[312,300],g:[377,300],t:[312,333],f:[363,352],c:[363,370]},rec:{s:[440,300],g:[503,300],t:[440,333],f:[500,352],c:[500,370]}},
+  f:makeOsFields("uni")
+},
+{
+  id:"bos",
+  name:"Beltone オーダーシート",
+  sub:"オーダーメイド全般（電池式・充電式）",
+  pdf:2,
+  img:"../img/custom/ordersheet-1.png",
+  os:{maker:"bel"},
+  note:{x:283,y:582,w:272,lh:13,fs:8.5,n:2},
+  audio:{x:{"125":307.3,"250":324.3,"500":341.4,"1000":377.8,"2000":397.3,"4000":436.7,"8000":476.2},y0:117.9,k:0.9623,dx:503,dy:146},
+  osEar:{R:[108,240,8],L:[131.5,240,8],B:[152.5,240,9.5]},
+  casCells:{bat:{s:[56,300],g:[143,300],t:[56,333],f:[97,352],c:[97,370]},rec:{s:[184,300],g:[249,300],t:[184,333],c:[233,361]}},
+  f:makeOsFields("bel")
 }
+
 ];
 
 let cur=FORMS[0];
@@ -286,6 +459,7 @@ function build(){snapSoon();
 
   cur.f.forEach(f=>{
     const t=f.t;
+    if(f.cond&&t!=="tx"&&V[f.cond[0]]!==f.cond[1])return;
     if(t==="h"){u.appendChild(el("h2",0,f.l));return}
     if(t==="t"){
       const i=el("input",{type:"text",value:V[f.k]||"",placeholder:f.l});
@@ -342,6 +516,7 @@ function build(){snapSoon();
       inp.oninput=()=>{V.nmText=inp.value.slice(0,15);draw()};
       u.appendChild(row("名入れ入力",inp));
     }
+    else if(t==="cas"){renderCas(u)}
     else if(t==="r"){
       const names=f.o.map(o=>o[0]);
       if(f.e){
@@ -353,7 +528,7 @@ function build(){snapSoon();
           u.appendChild(block);
         });
       }else{
-        u.appendChild(row(requiredLabel(f.l,f.k),chips(names,()=>V[f.k],x=>V[f.k]=x)));
+        u.appendChild(row(requiredLabel(f.l,f.k),chips(names,()=>V[f.k],x=>{V[f.k]=x;if(f.k==="cell")["casS","casG","casT","casF","casC"].forEach(k2=>delete V[k2])})));
       }
     }
   });
@@ -403,7 +578,7 @@ function build(){snapSoon();
 
   const acts=el("div",{className:"mini-actions"});
   const clear=el("button",{type:"button"},"この入力をクリア");
-  clear.onclick=()=>{["bY","bM","bD","cust","kana","free","nmText","mdate","total"].forEach(k=>delete V[k]);
+  clear.onclick=()=>{["bY","bM","bD","cust","kana","free","nmText","mdate","total","casS","casG","casT","casF","casC","cell","pw2","chg","mb","vol","vt","vtp","tgk","wax","waxT","yrs","mk","prevR","prevL","serR","serL","earner","expEar","utype","dome","plug","komori","hibiki","sh13"].forEach(k=>delete V[k]);
     Object.keys(V).filter(k=>k.startsWith("aR")||k.startsWith("aL")||k.startsWith("bR")||k.startsWith("bL")).forEach(k=>delete V[k]);
     build()};
   acts.appendChild(clear);
@@ -434,6 +609,8 @@ function ell(cx,cy,rx,ry){
 }
 function mark(f,i,e){
   const o=f.o[i];
+  if(!o||!o[1])return;
+  if(o[2]==="c"){circ(o[1][0],o[1][1],o[3]||5.5);return}
   if(f.m==="e"){ell(o[1][0],o[1][1],o[2],9.5);return}
   if(f.s){const p=(V[f.s]===1?o[2]:o[1]);if(p)chk(p[0],p[1]);return}
   const p=(e==="L"&&o[2])?o[2]:o[1];
@@ -454,20 +631,30 @@ function draw(){
       fit(nn(V.tel2),24,9,"l",f.d[1][0],f.d[1][1]);
       fit(nn(V.tel3),24,9,"l",f.d[2][0],f.d[2][1]);
     }
-    if(t==="tx"&&nn(V[f.k])&&(!f.cond||V[f.cond[0]]===f.cond[1])){if(f.k==="wish"){const wm=String(V.wish).match(/(?:\d{4}\D*)?(\d{1,2})\D+(\d{1,2})/);if(wm){fit(wm[1],24,9.5,"r",519,f.y);fit(wm[2],24,9.5,"l",533,f.y)}else fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y)}else fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y)}
+    if(t==="tx"&&nn(V[f.k])&&(!f.cond||V[f.cond[0]]===f.cond[1])){if(f.k==="wish"&&f.wishBox){fit(nn(V[f.k]),60,9,"c",f.x,f.y)}else if(f.k==="wish"){const wm=String(V.wish).match(/(?:\d{4}\D*)?(\d{1,2})\D+(\d{1,2})/);if(wm){fit(wm[1],24,9.5,"r",519,f.y);fit(wm[2],24,9.5,"l",533,f.y)}else fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y)}else fit(nn(V[f.k]),f.w,f.fs,f.a,f.x,f.y)}
     if(t==="nm"&&V.nm){chk(f.p[0],f.p[1],10);if(nn(V.nmText))fit(nn(V.nmText).slice(0,15),f.w,7.5,"l",f.x+2,f.y-1)}
-    if(t==="d"){["Y","M","D"].forEach((s,i)=>{const v=nn(V[f.k+s]);if(v)fit(v,30,f.fs,"r",f.xs[i],f.y)})}
+    if(t==="d"){if(f.one){const v=["Y","M","D"].map(s=>nn(V[f.k+s]));if(v[0]&&v[1]&&v[2])fit(v[0]+"年"+v[1]+"月"+v[2]+"日",120,f.fs,"l",f.x,f.y)}else ["Y","M","D"].forEach((s,i)=>{const v=nn(V[f.k+s]);if(v)fit(v,30,f.fs,"r",f.xs[i],f.y)})}
     if(t==="bd"){
       const v=["bY","bM","bD"].map(k=>nn(V[k]));
       f.xs.slice(0,3).forEach((x,i)=>v[i]&&fit(v[i],34,10,"r",x,f.y));
       const a=calcAge(v[0],v[1],v[2]);if(a!=="")fit(a,16,10,"r",f.xs[3],f.y);
     }
-    if(t==="c"&&V[f.k])chk(f.p[0],f.p[1],10);
+    if(t==="c"&&V[f.k]&&f.p)chk(f.p[0],f.p[1],10);
     if(t==="r"){
-      if(f.e)["R","L"].forEach(e=>{if(act(e)&&V[f.k+e]!=null)mark(f,V[f.k+e],e)});
+      if(f.cond&&V[f.cond[0]]!==f.cond[1]){}
+      else if(f.txt){if(V[f.k]!=null)fit(f.o[V[f.k]][0],20,10,"c",f.x,f.y)}
+      else if(f.e)["R","L"].forEach(e=>{if(act(e)&&V[f.k+e]!=null)mark(f,V[f.k+e],e)});
       else if(V[f.k]!=null)mark(f,V[f.k],"R");
     }
+    if(t==="cas"){
+      const cells=(V.cell===1?cur.casCells.rec:cur.casCells.bat);
+      if(cells){if(V.casS)fit(V.casS,78,9,"l",cells.s[0],cells.s[1]);if(V.casG)fit(V.casG,32,9,"l",cells.g[0],cells.g[1]);if(V.casT)fit(V.casT,115,9,"l",cells.t[0],cells.t[1]);if(V.casF&&cells.f)fit(V.casF,68,8.5,"l",cells.f[0],cells.f[1]);if(V.casC&&cells.c)fit(V.casC,68,8.5,"l",cells.c[0],cells.c[1])}
+    }
   });
+
+  if(cur.osEar){const c=cur.osEar[V.ears];if(c)circ(c[0],c[1],c[2])}
+  if(cur.os&&V.cell===1&&V.chg==null){const cf=cur.f.find(x=>x.k==="chg");if(cf&&cf.o[0][1])chk(cf.o[0][1][0],cf.o[0][1][1])}
+  if(cur.os&&cur.os.maker==="bel"&&V.pw2!=null){const pf=cur.f.find(x=>x.k==="pw2");if(pf&&pf.o[V.pw2][0]==="LP")fit("○LP",30,9,"l",264,417)}
 
   // 備考
   if(cur.note&&nn(V.free)){
@@ -529,13 +716,14 @@ function validateOrder(){
   ["shop","staff","cust"].forEach(k=>{if(!String(V[k]||"").trim())missing.push(labels[k]||k)});
   if(cur.audio){const hasAu=["R","L"].some(e=>act(e)&&Object.keys(cur.audio.x).some(f=>String(V["a"+e+f]??"").trim()!==""));if(!hasAu)missing.push("気導オージオグラム")}
   if(cur.id==="smr"){if(V.g==null)missing.push("グレード");if(V.pw==null)missing.push("パワー")}
+  if(cur.os){if(!V.casS)missing.push("器種（シリーズ）")}
   if(cur.id==="bel"){if(V.shape===1&&V.pw===0)return{ok:false,message:"カスタムDWCにLPはありません。パワーを選び直してください。"};if(V.shape==null)missing.push("器種");if(act("R")&&V.pwR==null&&act("L")&&V.pwL==null&&V.pw==null){/* power is ear */}}
   if(V.nm){const n=String(V.nmText||"").trim();if(!n)missing.push("名入れ文字");else if(!namePattern.test(n))return{ok:false,message:"名入れはひらがな・カタカナ・アルファベットで入力してください。"}}
   return missing.length?{ok:false,message:"必須項目を入力してください："+missing.join("、")}:{ok:true};
 }
 
 /* ===== 備品注文ページ連携（補聴器＋備品を1つのPDFで注文） ===== */
-const MID={smr:"insera_sr",bel:"beltone_custom"};
+const MID={smr:"insera_sr",bel:"beltone_custom",uos:"uni_ordersheet",bos:"bel_ordersheet"};
 let _idb=null;
 function idbOpen(){return _idb||(_idb=new Promise((res,rej)=>{try{const r=indexedDB.open("njh_order_v1",1);r.onupgradeneeded=()=>r.result.createObjectStore("kv");r.onsuccess=()=>res(r.result);r.onerror=()=>{_idb=null;rej(r.error)}}catch(e){_idb=null;rej(e)}}))}
 async function idbPut(k,v){const d=await idbOpen();return new Promise((res,rej)=>{const tr=d.transaction("kv","readwrite");tr.objectStore("kv").put(v,k);tr.oncomplete=()=>res();tr.onerror=()=>rej(tr.error)})}
@@ -704,6 +892,7 @@ else{DB_CUST=null;e.textContent="🗄 顧客管理と未連携です（顧客管
 }
 function orderSummary(){
 const parts=[];
+if(cur.os){if(V.casS)parts.push(osModelStr());parts.push(EN[V.ears]||"");if(V.total)parts.push("合計 "+V.total+"円");return parts.filter(Boolean).join("／")}
 if(cur.id==="smr"){const g=cur.f.find(x=>x.k==="g"),pw=cur.f.find(x=>x.k==="pw");if(g&&V.g!=null)parts.push("グレード"+g.o[V.g][0]);if(pw&&V.pw!=null)parts.push(pw.o[V.pw][0])}
 if(cur.id==="bel"){const sh=cur.f.find(x=>x.k==="shape");if(sh&&V.shape!=null)parts.push(sh.o[V.shape][0])}
 parts.push(EN[V.ears]||"");
@@ -915,15 +1104,30 @@ async function makeOrderXlsx(){
       vals.T23='S-R（カナル）';
       const fp=comb(F('fp'));if(fp)vals.V24=fp;
       const sc=comb(F('sc'));if(sc)vals.V25=sc;
-    }else{
+    }else if(cur.id==='bel'){
       vals.H21='Serene';
       const sh=lab(F('shape'),V.shape);if(sh)vals.H23=sh;
       const col=comb(F('col'));if(col)vals.J24=col;
     }
+    else if(cur.os){
+      const rec=V.cell===1;
+      if(cur.os.maker==='uni'){
+        if(rec){vals.T21=V.casS;vals.W21=V.casG;vals.T23=V.casT;vals.V24=V.casF;vals.V25=V.casC}
+        else{vals.N21=V.casS;vals.R21=V.casG;vals.N23=V.casT;vals.Q24=V.casF;vals.Q25=V.casC}
+      }else{
+        if(rec){vals.H21=V.casS;vals.L21=V.casG;vals.H23=V.casT;vals.J24=V.casC}
+        else{vals.B21=V.casS;vals.F21=V.casG;vals.B23=V.casT;vals.D24=V.casF;vals.D25=V.casC}
+      }
+      if(V.exp!=null)vals.F40=V.exp===0?('使用中（'+(['右','左','両耳'][V.expEar]||'両耳')+'）'):V.exp===1?'経験なし':'過去経験あり';
+      if(V.yrs)vals.E41='('+V.yrs+'年）';
+      if(V.mk)vals.E42=V.mk;
+      if(V.prevR)vals.E43=V.prevR;
+      if(V.prevL)vals.E44=V.prevL;
+    }
     if(V.total){const t=parseInt(String(V.total).replace(/[^0-9]/g,''),10);if(t>0)vals.K35=t}
     if(V.mdate)vals.AI8=V.mdate;
     if(V.wish)vals.W45=V.wish;
-    if(V.exp!=null){vals.F40=V.exp===0?('使用中（'+(V.ears==='R'?'右':V.ears==='L'?'左':'両耳')+'）'):V.exp===1?'経験なし':'過去経験あり'}
+    if(!cur.os&&V.exp!=null){vals.F40=V.exp===0?('使用中（'+(V.ears==='R'?'右':V.ears==='L'?'左':'両耳')+'）'):V.exp===1?'経験なし':'過去経験あり'}
     const COLS={'125':'AC','250':'AD','500':'AE','1000':'AG','2000':'AH','3000':'AI','4000':'AJ','8000':'AL'};
     ['R','L'].forEach((e,ei)=>{
       for(const fq of Object.keys(COLS)){
@@ -956,7 +1160,7 @@ async function makeOrderXlsx(){
         if(!V[k])return;const f=F(k);if(f)mark('N39',shmap[f.l]||f.l);
       });
       if(V.sh12)xml=_xzEdit(xml,shared,'N39',t=>t+'\nその他（シェル指定）');
-    }else{
+    }else if(cur.id==='bel'){
       const pw=lab(F('pw'),V.pw);
       if(pw==='LP')xml=_xzEdit(xml,shared,'C28',t=>t+'　○LP');
       else mark('C28',pw);
@@ -970,6 +1174,39 @@ async function makeOrderXlsx(){
       if(V.tvl)mark('F37','TVリンク2');
       if(V.vlp)xml=_xzEdit(xml,shared,'F37',t=>t+'\n○ボイスリンク・プロ');
       if(V.vlm)xml=_xzEdit(xml,shared,'F37',t=>t+'\n○ボイスリンク・マイクロ');
+    }
+    else if(cur.os){
+      const uni=cur.os.maker==='uni';
+      const pw=lab(F('pw2'),V.pw2);
+      if(uni)mark('N27',pw);
+      else if(pw==='LP')xml=_xzEdit(xml,shared,'C28',t=>t+'　○LP');
+      else mark('C28',pw);
+      if(V.cell===1)mark(uni?'T26':'H26',V.chg===1?'不要':'要');
+      mark('C29',lab(F('mb'),V.mb));
+      mark('C32',lab(F('vol'),V.vol));
+      mark('J29',lab(F('vt'),V.vt));
+      if(V.vt===0)mark('J29',(lab(F('vtp'),V.vtp)||'').replace('段付き','段付'));
+      if(V.tgk===0)xml=_xzEdit(xml,shared,'J32',t=>{const s=t.replace(/輪テグス\s*\(希望\s*mm\)/,'○輪テグス(希望 '+(V.tg2||'')+' mm)');return s===t?_xzMark(t,'輪テグス'):s});
+      else if(V.tgk===1)xml=_xzEdit(xml,shared,'J32',t=>{const s=t.replace(/1本テグス\(希望\s*mm\)/,'○1本テグス(希望 '+(V.tg1||'')+' mm)');return s===t?_xzMark(t,'1本テグス'):s});
+      else if(V.tgk===2)mark('J32','テグス無');
+      if(V.wax===0)mark('S29','ワックスフィルター');
+      else if(V.wax===1)mark('S29','HF4');
+      else if(V.wax===2){if(V.waxT)xml=_xzEdit(xml,shared,'S29',t=>t.replace('他（','○他（'+V.waxT));else mark('S29','他（')}
+      if(uni){if(V.dx)mark('S37','DXリモコン');if(V.tv)mark('S37','TVコネクター');if(V.pm)mark('S37','パートナーマイク')}
+      else{if(V.tvs)mark('F37','TVストリーマー');if(V.mm)mark('F37','マルチマイク');if(V.mini)mark('F37','ミニリモコン');if(V.tvl)mark('F37','TVリンク2')}
+      ['sh1','sh2','sh3','sh4','sh5','sh6','sh7','sh8','sh9','sh10','sh11'].forEach(k=>{if(!V[k])return;const f=F(k);if(f)mark('N39',f.l)});
+      if(V.sh13)mark('N39','B・ドア爪');
+      if(V.sh12)xml=_xzEdit(xml,shared,'N39',t=>t+'\nその他（シェル指定）');
+      if(V.q1)mark('M45','製作・仕様・形状について');
+      if(V.q2)mark('M45','納期・価格について');
+      mark('F41',lab(F('utype'),V.utype));
+      mark('G45',lab(F('dome'),V.dome));
+      mark('J45',lab(F('plug'),V.plug));
+      mark('E47',lab(F('komori'),V.komori));
+      mark('I47',lab(F('hibiki'),V.hibiki));
+      if(V.serR)xml=_xzEdit(xml,shared,'H43',t=>t+' '+V.serR);
+      if(V.serL)xml=_xzEdit(xml,shared,'H44',t=>t+' '+V.serL);
+      if(V.earner)xml=_xzEdit(xml,shared,'M47',t=>t.replace('様',V.earner+'様'));
     }
     if(V.free)xml=_xzEdit(xml,shared,'N39',t=>t+'\n備考：'+V.free);
     files.set(sp,new TextEncoder().encode(xml));
