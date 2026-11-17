@@ -222,9 +222,10 @@ function buildGroups(){const el=$('groups');el.innerHTML='';
  el.querySelectorAll('.chips').forEach(c=>{const id=c.dataset.id,multi=c.dataset.multi==='1';const gid=id.replace(/[RL]$/,'');const g=FM.groups.find(x=>x.id===id||(x.t==='ear'&&x.id+'R'===id)||(x.t==='ear'&&x.id+'L'===id));
   g.items.forEach(i=>{const lb=document.createElement('label');lb.innerHTML=`<input type="${multi?'checkbox':'radio'}" name="${id}" value="${i.k}"><span>${i.l}</span>`;const inp=lb.firstChild;if(i.dis){inp.disabled=true;inp.dataset.dis='1';lb.style.opacity=.45;lb.querySelector('span').textContent=i.l+'（販売終了）'}
    inp.onchange=()=>{const pv=ST[id];ST[id]=multi?sel(c):inp.value;if(multi&&g.msel&&ST[id].length>g.msel){ST[id]=Array.isArray(pv)?pv.slice():(pv?[pv]:[]);toast('片耳につき'+g.msel+'種類までです');refresh()}upd()};
-   inp.onclick=()=>{if(!multi&&ST[id]===i.k&&inp.dataset.on){inp.checked=false;ST[id]='';inp.dataset.on='';upd()}else{c.querySelectorAll('input').forEach(x=>x.dataset.on='');inp.dataset.on='1'}};c.appendChild(lb)})})}
+   inp.onclick=()=>{if(!multi&&ST[id]===i.k&&inp.dataset.on){inp.checked=false;ST[id]='';inp.dataset.on='';upd()}else{c.querySelectorAll('input').forEach(x=>x.dataset.on='');inp.dataset.on='1'}setTimeout(()=>{try{syncChip(c,id,multi)}catch(e){}},0)};c.appendChild(lb)})})}
 function refresh(){document.querySelectorAll('#groups .chips').forEach(c=>{const id=c.dataset.id,multi=c.dataset.multi==='1',v=ST[id];c.querySelectorAll('input').forEach(i=>{i.checked=multi?(Array.isArray(v)?v:(v?[v]:[])).includes(i.value):v===i.value;i.dataset.on=i.checked?'1':''})});
  document.querySelectorAll('#groups select').forEach(s=>s.value=ST[s.dataset.id]||'');document.querySelectorAll('#groups input[data-tid]').forEach(i=>{if(document.activeElement!==i)i.value=ST[i.dataset.tid]||''})}
+function syncChip(c,id,multi){if(!FM)return;if(multi){const dom=sel(c),cur=EA(ST[id]);if(dom.length!==cur.length||dom.some(x=>!cur.includes(x))){ST[id]=dom;upd()}}else{const chk=c.querySelector('input:checked'),dv=chk?chk.value:'';if((ST[id]||'')!==dv){ST[id]=dv;upd()}}}
 function buildAu(){
   const old=document.getElementById('auBox');if(old)old.remove();
   if(!FM||!FM.audio)return;
@@ -319,7 +320,7 @@ function upd(){if(!FM)return;FM.groups.forEach(g=>{if(g.t==='ear'&&g.msel)['R','
  // radio groups with off rules (e.g. grade vs series)
  FM.groups.forEach(g=>{if(g.off)Object.keys(g.off).forEach(k=>{const o=g.off[k];document.querySelectorAll(`#g_${g.id} input[value="${k}"]`).forEach(x=>{x.disabled=o.slice(1).includes(ST[o[0]])})})});
  $('warns').innerHTML=(w.length?`<div class="warn">未入力：${w.join('、')}</div>`:'')+(mold?'<div class="warn">モールド／プレートモールド（UP）は「モールド専用注文書」と「耳型」を添付してFAXしてください。</div>':'');
- HA_OK=(w.length===0);haSync();saveHaDraft();draw()}
+ HA_OK=(w.length===0);haSync();saveHaDraft();refresh();draw()}
 function ymd(v){if(!v)return['','',''];const p=v.split('-');return[p[0],String(+p[1]),String(+p[2])]}
 function draw(){if(!ready||!FM)return;const W=cv.width,Hh=cv.height,ox=+$('dx').value,oy=+$('dy').value,S=S2;cx.clearRect(0,0,W,Hh);cx.drawImage(IMG,0,0);cx.fillStyle=cx.strokeStyle='#111';cx.textBaseline='middle';
  const T=(t,x,y,sz=16,al='left')=>{if(!t)return;cx.font=`${sz*S}px ${FONT}`;cx.textAlign=al;cx.fillText(t,(x+ox)*S,(y+oy)*S)};
