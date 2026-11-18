@@ -1078,6 +1078,7 @@ img,canvas,table{max-width:100%}
             <div id="cartList"></div>
             <div class="cart-sum" id="cartSum"></div>
             <p class="cart-sum-note" id="cartSumNote"></p>
+            <button type="button" id="cartClearAll" style="display:none;margin:10px auto 2px;padding:9px 18px;border:1.5px solid #d8a7a7;color:#b3261e;background:#fff;border-radius:9px;font-weight:700;cursor:pointer">🗑 注文リストを全てクリア</button>
             <details class="cart-custom">
                 <summary>＋ カタログにない品を手入力で追加</summary>
                 <div class="cc-row">
@@ -2029,6 +2030,8 @@ img,canvas,table{max-width:100%}
         cart = cart.filter(c => c && c.id && c.qty > 0);
     } catch (e) { cart = []; }
     function saveCart() { cLsSet(CART_KEY, JSON.stringify(cart)); }
+    const cartToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const cartAddedLbl = v => { if (!v) return ''; const p = String(v).split('-'); if (p.length !== 3) return ''; const now = new Date(); return (String(now.getFullYear()) === p[0] ? '' : p[0] + '/') + (+p[1]) + '/' + (+p[2]) + 'に入れた'; };
 
     const BAT_DEFS = [
         { id: 'bat312', label: '空気電池 312（茶色）', el: 'bat312' },
@@ -2114,7 +2117,7 @@ img,canvas,table{max-width:100%}
         const hit = cart.find(match);
         if (hit) hit.qty = Math.min(999, hit.qty + 1);
         else {
-            const item = { id, qty: 1, name: p ? p.name : id, brand: p ? p.brand : '', price: p ? p.price : 0 };
+            const item = { id, qty: 1, name: p ? p.name : id, brand: p ? p.brand : '', price: p ? p.price : 0, added: cartToday() };
             if (hasOpts) {
                 item.opts = { metal: opts.metal || '', cord: opts.cord || '' };
                 const bits = [];
@@ -2162,7 +2165,7 @@ img,canvas,table{max-width:100%}
         if (f.custom) {
             const hit = cart.find(c => c.custom && c.name === f.name);
             if (hit) hit.qty = Math.min(999, hit.qty + 1);
-            else cart.push({ id: 'x' + Date.now(), custom: true, name: f.name, qty: 1 });
+            else cart.push({ id: 'x' + Date.now(), custom: true, name: f.name, qty: 1, added: cartToday() });
             saveCart(); updateCartUI(); cToast('追加しました（' + f.name + '）');
         } else addToCart(f.id, f.opts);
     }
@@ -2199,7 +2202,7 @@ img,canvas,table{max-width:100%}
             const hit = c.custom ? cart.find(x => x.custom && x.name === c.name)
                 : cart.find(x => !x.custom && x.id === c.id && JSON.stringify(x.opts || null) === JSON.stringify(c.opts || null));
             if (hit) hit.qty = Math.min(999, hit.qty + c.qty);
-            else cart.push(Object.assign({}, c, c.custom ? { id: 'x' + Date.now() + Math.floor(Math.random() * 1000) } : {}));
+            else cart.push(Object.assign({}, c, { added: cartToday() }, c.custom ? { id: 'x' + Date.now() + Math.floor(Math.random() * 1000) } : {}));
         });
         Object.keys(e.bats || {}).forEach(k => { const el = cEl(k); if (el) el.value = String(Math.min(999, getBatQty(k) + (+e.bats[k] || 0))); });
         saveCart(); saveBat(); updateCartUI();
@@ -2304,7 +2307,7 @@ img,canvas,table{max-width:100%}
                 const m = brandMeta(l.brand);
                 return `<div class="cart-row b-${m.key}" data-idx="${idx}">
                     <div><div class="cr-name">${cEsc(l.name)}</div>
-                    <div class="cr-sub">${cEsc(l.brand)}${l.note ? ' ／ ' + cEsc(l.note) : ''}</div></div>
+                    <div class="cr-sub">${cEsc(l.brand)}${l.note ? ' ／ ' + cEsc(l.note) : ''}${c.added ? ' ／ ' + cartAddedLbl(c.added) : ''}</div></div>
                     <div class="cr-price">${l.price > 0 ? cYen(l.price * l.qty) + (l.qty > 1 ? `<small>${cYen(l.price)} × ${l.qty}</small>` : '') : '<small>価格は要確認</small>'}</div>
                     <div class="cr-ctrl">
                         <button type="button" data-act="dec" aria-label="減らす">−</button>
@@ -2317,6 +2320,7 @@ img,canvas,table{max-width:100%}
         }
         const T = cartTotals(L);
         cEl('cartSum').innerHTML = `<span>${T.kinds}品目 ／ 合計 ${T.count}点</span><b>上代合計 ${cYen(T.sum)}</b>`;
+        const cbA = cEl('cartClearAll'); if (cbA) cbA.style.display = L.length ? '' : 'none';
         cEl('cartSumNote').textContent = T.unpriced
             ? `※価格が未設定の${T.unpriced}品目は合計に含まれません（カタログでご確認ください）`
             : '※表示価格の合算です（非課税品は非課税価格）。実際の請求額は納品書をご確認ください';
@@ -2335,6 +2339,15 @@ img,canvas,table{max-width:100%}
         updateCartUI();
     });
 
+    const ccaBtn = cEl('cartClearAll');
+    if (ccaBtn) ccaBtn.addEventListener('click', () => {
+        if (!cart.length) return;
+        if (!confirm('注文リストの中身を全て消しますか？')) return;
+        cart = [];
+        saveCart();
+        updateCartUI();
+    });
+
     cEl('favList').addEventListener('click', e => {
         const x = e.target.closest('[data-fx]');
         if (x) { favs.splice(+x.dataset.fx, 1); saveFavs(); renderFavs(); renderCartList(); return; }
@@ -2349,7 +2362,7 @@ img,canvas,table{max-width:100%}
         const name = cEl('ccName').value.trim();
         const qty = Math.max(1, Math.min(999, parseInt(cEl('ccQty').value, 10) || 1));
         if (!name) { cToast('品名・型番を入力してください'); cEl('ccName').focus(); return; }
-        cart.push({ id: 'x' + Date.now(), custom: true, name, qty });
+        cart.push({ id: 'x' + Date.now(), custom: true, name, qty, added: cartToday() });
         cEl('ccName').value = ''; cEl('ccQty').value = '1';
         saveCart(); updateCartUI();
         cToast('手入力の品目を追加しました');

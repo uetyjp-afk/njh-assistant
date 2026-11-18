@@ -41,6 +41,8 @@ input[type=text],input[type=tel],input[type=email],input[type=date],input[type=n
 .bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
 .pv canvas{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:#fff;display:block}
 .warn{background:#fff4d6;color:#6b4a00;border:1px solid #e8c766;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
+.warnMiss{background:#fdecea;color:#b3261e;border:2px solid #e57373;border-radius:8px;padding:9px 11px;font-size:15px;font-weight:700;margin:8px 0}
+.specbar{background:#e9f2ec;color:#0a4630;border:1.5px solid #0a4630;border-radius:8px;padding:8px 11px;font-size:15px;font-weight:700;margin:8px 0}
 .note{font-size:12px;color:var(--sub)}
 #toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s}
 #toast.on{opacity:1}
@@ -319,7 +321,8 @@ function upd(){if(!FM)return;FM.groups.forEach(g=>{if(g.t==='ear'&&g.msel)['R','
  FM.groups.forEach(g=>{if(g.t==='radio'||g.t==='multi')g.items.forEach(i=>{if(g.off&&g.off[i.k]){}})});
  // radio groups with off rules (e.g. grade vs series)
  FM.groups.forEach(g=>{if(g.off)Object.keys(g.off).forEach(k=>{const o=g.off[k];document.querySelectorAll(`#g_${g.id} input[value="${k}"]`).forEach(x=>{x.disabled=o.slice(1).includes(ST[o[0]])})})});
- $('warns').innerHTML=(w.length?`<div class="warn">未入力：${w.join('、')}</div>`:'')+(mold?'<div class="warn">モールド／プレートモールド（UP）は「モールド専用注文書」と「耳型」を添付してFAXしてください。</div>':'');
+ const sgX=FM.groups.find(g=>g.title.replace(/^[①②③] /,'')==='仕様'&&showG(g))||FM.groups.find(g=>(g.title||'').indexOf('仕様')>=0&&showG(g));let specHtml='';if(sgX){let siL='';if(sgX.t==='radio'){const itX=sgX.items.find(i=>i.k===ST[sgX.id]);if(itX)siL=itX.l}else if(sgX.t==='ear'){const ppX=e=>EA(ST[sgX.id+e]).map(v=>{const itX=sgX.items.find(i=>i.k===v);return itX?itX.l:''}).filter(Boolean).join('・');const prX=ppX('R'),plX=ppX('L');siL=(prX?'右：'+prX:'')+(prX&&plX?'　':'')+(plX?'左：'+plX:'')}if(siL)specHtml=`<div class="specbar">仕様：${siL}</div>`}
+$('warns').innerHTML=specHtml+(w.length?`<div class="warnMiss">⚠ 未入力：${w.join('、')}</div>`:'')+(mold?'<div class="warn">モールド／プレートモールド（UP）は「モールド専用注文書」と「耳型」を添付してFAXしてください。</div>':'');
  HA_OK=(w.length===0);haSync();saveHaDraft();refresh();draw()}
 function ymd(v){if(!v)return['','',''];const p=v.split('-');return[p[0],String(+p[1]),String(+p[2])]}
 function draw(){if(!ready||!FM)return;const W=cv.width,Hh=cv.height,ox=+$('dx').value,oy=+$('dy').value,S=S2;cx.clearRect(0,0,W,Hh);cx.drawImage(IMG,0,0);cx.fillStyle=cx.strokeStyle='#111';cx.textBaseline='middle';
